@@ -1,0 +1,2332 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+// GENERATED from dc-runtime/src/*.ts — do not edit. Rebuild with `cd dc-runtime && bun run build`.
+"use strict";
+(() => {
+  var __defProp = Object.defineProperty;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+
+  // src/react.ts
+  function getReact() {
+    const R = window.React;
+    if (!R) throw new Error("dc-runtime: window.React is not available yet");
+    return R;
+  }
+  function getReactDOM() {
+    const RD = window.ReactDOM;
+    if (!RD) throw new Error("dc-runtime: window.ReactDOM is not available yet");
+    return RD;
+  }
+  var h = ((...args) => getReact().createElement(
+    ...args
+  ));
+
+  // src/parse.ts
+  function parseDcDocument(doc) {
+    const dc = doc.querySelector("x-dc");
+    if (!dc) return null;
+    const scriptEl = doc.querySelector("script[data-dc-script]");
+    const { props, preview } = parseDataProps(
+      scriptEl?.getAttribute("data-props") ?? null
+    );
+    return {
+      template: dc.innerHTML,
+      js: scriptEl ? scriptEl.textContent || "" : "",
+      props,
+      preview
+    };
+  }
+  function parseDcText(src) {
+    const openMatch = /<x-dc(?:\s[^>]*)?>/.exec(src);
+    if (!openMatch) return null;
+    const close = src.lastIndexOf("</x-dc>");
+    if (close === -1 || close < openMatch.index) return null;
+    const template = src.slice(openMatch.index + openMatch[0].length, close);
+    const doc = new DOMParser().parseFromString(src, "text/html");
+    const scriptEl = doc.querySelector("script[data-dc-script]");
+    const { props, preview } = parseDataProps(
+      scriptEl?.getAttribute("data-props") ?? null
+    );
+    return {
+      template,
+      js: scriptEl ? scriptEl.textContent || "" : "",
+      props,
+      preview
+    };
+  }
+  function parseDataProps(raw) {
+    if (!raw) return { props: null, preview: null };
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return { props: null, preview: null };
+    }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { props: null, preview: null };
+    }
+    const obj = parsed;
+    const preview = obj.$preview && typeof obj.$preview === "object" ? obj.$preview : null;
+    const rest = {};
+    for (const k of Object.keys(obj)) {
+      if (k[0] !== "$") rest[k] = obj[k];
+    }
+    return { props: Object.keys(rest).length ? rest : null, preview };
+  }
+  function dcNameFromPath(pathname) {
+    let p = pathname || "";
+    try {
+      p = decodeURIComponent(p);
+    } catch {
+    }
+    const base = p.split("/").pop() || "Root";
+    return base.replace(/\.dc\.html$/, "").replace(/\.html?$/, "") || "Root";
+  }
+
+  // src/boot.ts
+  var BASE_CSS = `
+    .sc-placeholder{background:rgba(255,255,255,.3);border:1px solid rgba(0,0,0,.5);
+      border-radius:2px;box-sizing:border-box;overflow:hidden}
+    @keyframes sc-shine{0%{background-position:100% 50%}100%{background-position:0% 50%}}
+    html.sc-dc-streaming .sc-placeholder,
+    html.sc-dc-streaming .sc-interp.sc-missing{position:relative;
+      background:color-mix(in srgb,currentColor 5%,transparent);
+      border-color:transparent}
+    html.sc-dc-streaming .sc-placeholder::before,
+    html.sc-dc-streaming .sc-interp.sc-missing::before{content:'';
+      position:absolute;inset:0;pointer-events:none;
+      background:linear-gradient(90deg,rgba(217,119,87,0) 25%,rgba(247,225,211,.95) 37%,rgba(217,119,87,0) 63%);
+      background-size:400% 100%;animation:sc-shine 1.4s ease infinite}
+    html.sc-dc-streaming .sc-placeholder:nth-child(n+9 of .sc-placeholder)::before,
+    html.sc-dc-streaming .sc-interp.sc-missing:nth-child(n+9 of .sc-interp.sc-missing)::before{animation:none;
+      background:color-mix(in srgb,currentColor 8%,transparent)}
+    .sc-placeholder-error{padding:4px 8px;font:11px/1.4 ui-monospace,monospace;
+      color:rgba(0,0,0,.7);word-break:break-word}
+    .sc-interp.sc-missing{display:inline-block;width:2em;height:1em;overflow:hidden;
+      vertical-align:text-bottom;background:rgba(255,255,255,.3);border:1px solid rgba(0,0,0,.5);
+      border-radius:2px;box-sizing:border-box;color:transparent;
+      user-select:none}
+    .sc-interp.sc-unresolved{font-family:ui-monospace,monospace;font-size:.85em;
+      color:rgba(0,0,0,.5);background:rgba(0,0,0,.05);border-radius:3px;
+      padding:0 3px}
+    .sc-host.sc-has-error{position:relative}
+    .sc-logic-error{position:absolute;top:8px;left:8px;z-index:2147483647;max-width:60ch;
+      padding:6px 10px;background:#b00020;color:#fff;font:12px/1.4 ui-monospace,monospace;
+      border-radius:4px;white-space:pre-wrap;pointer-events:none}
+    /* Mirrors PRINT_BASELINE_CSS in apps/web deck-stage-export.ts \u2014 keep both
+       in sync until dc-runtime regains a build step. */
+    @media print {
+      @page { margin: 0.5cm; }
+      section, article, figure, table { break-inside: avoid; }
+      *, *::before, *::after {
+        print-color-adjust: exact; -webkit-print-color-adjust: exact;
+        backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+        animation-delay: -99s !important; animation-duration: .001s !important;
+        animation-iteration-count: 1 !important; animation-fill-mode: both !important;
+        animation-play-state: running !important; transition-duration: 0s !important;
+      }
+    }
+  `;
+  var FULL_PAGE_CSS = "html,body{height:100%;margin:0}#dc-root,#dc-root>.sc-host{height:100%}";
+  function rootNameForDocument(doc, loc) {
+    let bootPath = loc.pathname || "";
+    if (!/\.dc\.html?$/i.test(safeDecode(bootPath))) {
+      try {
+        bootPath = new URL(doc.baseURI || "/").pathname;
+      } catch {
+      }
+    }
+    return dcNameFromPath(bootPath);
+  }
+  function safeDecode(s) {
+    try {
+      return decodeURIComponent(s);
+    } catch {
+      return s;
+    }
+  }
+  function boot(runtime, doc = document) {
+    const parsed = parseDcDocument(doc);
+    if (!parsed) return null;
+    const React = getReact();
+    const rootName = rootNameForDocument(doc, location);
+    runtime.markFetched(rootName);
+    runtime.adoptParsed(rootName, parsed);
+    fetch(location.href).then((res) => res.ok ? res.text() : "").then((t) => {
+      const raw = t ? parseDcText(t) : null;
+      if (raw?.template) runtime.updateHtml(rootName, raw.template);
+    }).catch(() => {
+    });
+    const dc = doc.querySelector("x-dc");
+    const hostEl = doc.createElement("div");
+    hostEl.id = "dc-root";
+    dc.replaceWith(hostEl);
+    if (!parsed.preview) {
+      const s = doc.createElement("style");
+      s.textContent = FULL_PAGE_CSS;
+      doc.head.appendChild(s);
+    }
+    const Root = runtime.getDC(rootName);
+    const entry = runtime.registry.get(rootName);
+    function StandaloneRoot() {
+      const [, setTick] = React.useState(0);
+      React.useEffect(() => {
+        const sub = () => setTick((n) => n + 1);
+        entry.subs.add(sub);
+        return () => {
+          entry.subs.delete(sub);
+        };
+      }, []);
+      return h(Root, entry.propOverrides || null);
+    }
+    const ReactDOM = getReactDOM();
+    if (ReactDOM.createRoot)
+      ReactDOM.createRoot(hostEl).render(h(StandaloneRoot));
+    else ReactDOM.render(h(StandaloneRoot), hostEl);
+    return rootName;
+  }
+
+  // src/expr.ts
+  var IDENT_RE = /^[A-Za-z_$][A-Za-z0-9_$]*/;
+  var NUMBER_RE = /^-?\d+(\.\d+)?$/;
+  function resolve(vals, src) {
+    const expr = String(src).trim();
+    if (!expr) return void 0;
+    if (expr[0] === "(" && expr[expr.length - 1] === ")" && parensWrapWhole(expr)) {
+      return resolve(vals, expr.slice(1, -1));
+    }
+    const eq = findTopLevelEquality(expr);
+    if (eq) {
+      const lv = resolve(vals, expr.slice(0, eq.index));
+      const rv = resolve(vals, expr.slice(eq.index + eq.op.length));
+      switch (eq.op) {
+        case "===":
+          return lv === rv;
+        case "!==":
+          return lv !== rv;
+        case "==":
+          return lv == rv;
+        default:
+          return lv != rv;
+      }
+    }
+    if (expr[0] === "!") return !resolve(vals, expr.slice(1));
+    if (expr === "true") return true;
+    if (expr === "false") return false;
+    if (expr === "null") return null;
+    if (expr === "undefined") return void 0;
+    if (NUMBER_RE.test(expr)) return Number(expr);
+    if (expr.length >= 2 && (expr[0] === '"' || expr[0] === "'") && expr[expr.length - 1] === expr[0]) {
+      return expr.slice(1, -1);
+    }
+    return resolvePath(vals, expr);
+  }
+  function parensWrapWhole(expr) {
+    let depth = 0;
+    for (let i = 0; i < expr.length - 1; i++) {
+      if (expr[i] === "(") depth++;
+      else if (expr[i] === ")") {
+        depth--;
+        if (depth === 0) return false;
+      }
+    }
+    return true;
+  }
+  function findTopLevelEquality(expr) {
+    let depth = 0;
+    for (let i = 0; i < expr.length; i++) {
+      const c = expr[i];
+      if (c === "[" || c === "(") depth++;
+      else if (c === "]" || c === ")") depth--;
+      else if (depth === 0 && (c === "=" || c === "!") && expr[i + 1] === "=") {
+        if (i > 0 && (expr[i - 1] === "=" || expr[i - 1] === "!")) continue;
+        if (!expr.slice(0, i).trim()) continue;
+        const op = expr[i + 2] === "=" ? c + "==" : c + "=";
+        return { index: i, op };
+      }
+    }
+    return null;
+  }
+  function resolvePath(vals, expr) {
+    const head = expr.match(IDENT_RE);
+    if (!head) return void 0;
+    let cur = vals == null ? void 0 : vals[head[0]];
+    let i = head[0].length;
+    while (i < expr.length) {
+      if (expr[i] === ".") {
+        const m = expr.slice(i + 1).match(IDENT_RE) || expr.slice(i + 1).match(/^\d+/);
+        if (!m) return void 0;
+        cur = cur == null ? void 0 : cur[m[0]];
+        i += 1 + m[0].length;
+      } else if (expr[i] === "[") {
+        let depth = 1;
+        let j = i + 1;
+        while (j < expr.length && depth > 0) {
+          if (expr[j] === "[") depth++;
+          else if (expr[j] === "]") {
+            depth--;
+            if (depth === 0) break;
+          }
+          j++;
+        }
+        if (depth !== 0) return void 0;
+        const key = resolve(vals, expr.slice(i + 1, j));
+        cur = cur == null ? void 0 : cur[key];
+        i = j + 1;
+      } else {
+        return void 0;
+      }
+    }
+    return cur;
+  }
+
+  // src/encode.ts
+  var CAMEL_ATTR = "sc-camel-";
+  var RAW_WRAP = {
+    select: "sc-raw-select",
+    table: "sc-raw-table",
+    tbody: "sc-raw-tbody",
+    thead: "sc-raw-thead",
+    tfoot: "sc-raw-tfoot",
+    tr: "sc-raw-tr",
+    td: "sc-raw-td",
+    th: "sc-raw-th",
+    caption: "sc-raw-caption"
+  };
+  var RAW_UNWRAP = Object.fromEntries(
+    Object.entries(RAW_WRAP).map(([k, v]) => [v, k])
+  );
+  var EVENT_MAP = {
+    onclick: "onClick",
+    onchange: "onChange",
+    oninput: "onInput",
+    onsubmit: "onSubmit",
+    onkeydown: "onKeyDown",
+    onkeyup: "onKeyUp",
+    onkeypress: "onKeyPress",
+    onmousedown: "onMouseDown",
+    onmouseup: "onMouseUp",
+    onmouseenter: "onMouseEnter",
+    onmouseleave: "onMouseLeave",
+    onfocus: "onFocus",
+    onblur: "onBlur",
+    ondoubleclick: "onDoubleClick",
+    oncontextmenu: "onContextMenu"
+  };
+  var ATTRS = `(?:[^>"']|"[^"]*"|'[^']*')*`;
+  var IMPORT_SELF_CLOSE_RE = new RegExp(
+    "<(x-import|dc-import)(" + ATTRS + ")/>",
+    "gi"
+  );
+  var CAMEL_ATTR_RE = /(\s)([a-z]+[A-Z][A-Za-z0-9]*)(\s*=)/g;
+  function encodeCase(html) {
+    html = html.replace(
+      IMPORT_SELF_CLOSE_RE,
+      (_, t, a) => "<" + t + a + "></" + t + ">"
+    );
+    html = html.replace(/<helmet(\s|>)/gi, "<sc-helmet$1");
+    html = html.replace(/<\/helmet\s*>/gi, "</sc-helmet>");
+    html = html.replace(
+      CAMEL_ATTR_RE,
+      (_, sp, name, eq) => sp + CAMEL_ATTR + name.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase()) + eq
+    );
+    for (const [real, alias] of Object.entries(RAW_WRAP)) {
+      html = html.replace(
+        new RegExp("(</?)" + real + "(?=[\\s>])", "gi"),
+        "$1" + alias
+      );
+    }
+    return html;
+  }
+  function kebabToCamel(s) {
+    return s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+  }
+  function cssToObj(css) {
+    const o = {};
+    for (const decl of css.split(";")) {
+      const i = decl.indexOf(":");
+      if (i < 0) continue;
+      const prop = decl.slice(0, i).trim();
+      o[prop.startsWith("--") ? prop : kebabToCamel(prop)] = decl.slice(i + 1).trim();
+    }
+    return o;
+  }
+  function compileAttr(raw) {
+    const whole = raw.match(/^\s*\{\{([\s\S]+?)\}\}\s*$/);
+    if (whole) {
+      const path = whole[1];
+      return (vals) => resolve(vals, path);
+    }
+    if (raw.includes("{{")) {
+      const parts = raw.split(/\{\{([\s\S]+?)\}\}/g);
+      return (vals) => parts.map((s, i) => i & 1 ? resolve(vals, s) ?? "" : s).join("");
+    }
+    return () => raw;
+  }
+
+  // src/compile.ts
+  function collectProps(node, isComponent, host) {
+    const propGetters = [];
+    const pseudoClasses = [];
+    let hintSize = null;
+    for (const { name, value } of [...node.attributes]) {
+      if (name === "sc-name" || name === "data-dc-tpl") continue;
+      let key = name;
+      if (key.startsWith(CAMEL_ATTR))
+        key = kebabToCamel(key.slice(CAMEL_ATTR.length));
+      if (key === "hint-size") {
+        hintSize = value;
+        continue;
+      }
+      if (key.startsWith("style-")) {
+        pseudoClasses.push(host.pseudoClass(key.slice(6), value));
+        continue;
+      }
+      if (isComponent) {
+        if (key.includes("-")) key = kebabToCamel(key);
+      } else {
+        if (key === "class") key = "className";
+        else if (key === "for") key = "htmlFor";
+        else if (key.startsWith("on"))
+          key = EVENT_MAP[key] || "on" + key[2].toUpperCase() + key.slice(3);
+      }
+      propGetters.push([key, compileAttr(value)]);
+    }
+    return { propGetters, pseudoClasses, hintSize };
+  }
+  var HOST_STYLE_PROPS = /* @__PURE__ */ new Set([
+    "position",
+    "left",
+    "right",
+    "top",
+    "bottom",
+    "inset",
+    "width",
+    "height",
+    "z-index",
+    "transform"
+  ]);
+  function hostPositionStyle(style) {
+    const all = typeof style === "string" ? cssToObj(style) : style != null && typeof style === "object" ? style : null;
+    if (!all) return void 0;
+    const out = {};
+    for (const [k, v] of Object.entries(all)) {
+      const kebab = k.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase());
+      if (HOST_STYLE_PROPS.has(kebab)) out[k] = v;
+    }
+    return Object.keys(out).length ? out : void 0;
+  }
+  function compileTemplate(html, host) {
+    const tpl = document.createElement("template");
+    //! nosemgrep: direct-inner-html-assignment
+    tpl.innerHTML = encodeCase(html);
+    let tplN = 0;
+    (function stamp(node) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        node.setAttribute("data-dc-tpl", String(tplN++));
+      }
+      for (const c of node.childNodes) stamp(c);
+    })(tpl.content);
+    const builders = walkChildren(tpl.content, host);
+    const render = ((vals, ctx) => builders.map((b, i) => b(vals || {}, ctx, i)));
+    render.__annotated = tpl.innerHTML;
+    return render;
+  }
+  function walkChildren(node, host) {
+    return [...node.childNodes].map((c) => walk(c, host)).filter((b) => b != null);
+  }
+  function walk(node, host) {
+    if (node.nodeType === Node.TEXT_NODE) return walkText(node);
+    if (node.nodeType !== Node.ELEMENT_NODE) return null;
+    const el = node;
+    const tag = el.tagName.toLowerCase();
+    if (tag === "sc-for") return walkFor(el, host);
+    if (tag === "sc-if") return walkIf(el, host);
+    if (tag === "x-import") return walkXImport(el, host);
+    if (tag === "sc-helmet") return host.helmet(el);
+    if (tag === "dc-import") return walkComponent(el, host);
+    return walkElement(el, host);
+  }
+  var warnedHoles = /* @__PURE__ */ new Set();
+  function warnUnresolved(ctx, what) {
+    const key = (ctx?.__name || "?") + "\0" + what;
+    if (warnedHoles.has(key)) return;
+    warnedHoles.add(key);
+    console.warn("[dc-runtime] " + (ctx?.__name || "template") + ": " + what);
+  }
+  function walkText(node) {
+    const txt = node.nodeValue ?? "";
+    if (!txt.includes("{{")) {
+      if (!txt.trim() && !txt.includes(" ")) return null;
+      return () => txt;
+    }
+    const parts = txt.split(/\{\{([\s\S]+?)\}\}/g);
+    return (vals, ctx, key) => h(
+      getReact().Fragment,
+      { key },
+      ...parts.map((p, i) => {
+        if (!(i & 1)) return p;
+        const v = resolve(vals, p);
+        if (v === void 0) {
+          if (!ctx?.__streamingNow) {
+            if (document.body?.hasAttribute("data-dc-editor-on")) {
+              return h(
+                "span",
+                { key: i, className: "sc-interp sc-unresolved" },
+                "{{ " + p.trim() + " }}"
+              );
+            }
+            warnUnresolved(
+              ctx,
+              "{{ " + p.trim() + " }} never resolved \u2014 rendered as empty"
+            );
+            return null;
+          }
+          return h(
+            "span",
+            { key: i, className: "sc-interp sc-missing" },
+            p.trim()
+          );
+        }
+        if (getReact().isValidElement(v) || Array.isArray(v)) {
+          return h(getReact().Fragment, { key: i }, v);
+        }
+        if (v === null || typeof v === "boolean") return null;
+        return h("span", { key: i, className: "sc-interp" }, String(v));
+      })
+    );
+  }
+  function walkFor(el, host) {
+    const listGet = compileAttr(el.getAttribute("list") || "");
+    const asName = el.getAttribute("as") || "item";
+    const hintN = parseInt(el.getAttribute("hint-placeholder-count") || "0", 10);
+    const kids = walkChildren(el, host);
+    const listSrc = el.getAttribute("list") || "";
+    return (vals, ctx, key) => {
+      let list = listGet(vals);
+      if (!Array.isArray(list)) {
+        if (!ctx?.__streamingNow) {
+          if (list !== void 0 && list !== null) {
+            warnUnresolved(
+              ctx,
+              'sc-for list="' + listSrc + '" is not an array (' + typeof list + ")"
+            );
+          }
+          list = [];
+        } else {
+          list = hintN > 0 ? Array(hintN).fill(void 0) : [];
+        }
+      }
+      return h(
+        getReact().Fragment,
+        { key },
+        list.map((item, i) => {
+          const sub = { ...vals, [asName]: item, $index: i };
+          return h(
+            getReact().Fragment,
+            { key: i },
+            kids.map((b, j) => b(sub, ctx, j))
+          );
+        })
+      );
+    };
+  }
+  function walkIf(el, host) {
+    const valGet = compileAttr(el.getAttribute("value") || "");
+    const hintRaw = el.getAttribute("hint-placeholder-val");
+    const hintGet = hintRaw != null ? compileAttr(hintRaw) : null;
+    const kids = walkChildren(el, host);
+    return (vals, ctx, key) => {
+      let v = valGet(vals);
+      if (v === void 0 && hintGet && ctx?.__streamingNow) v = hintGet(vals);
+      return v ? h(
+        getReact().Fragment,
+        { key },
+        kids.map((b, j) => b(vals, ctx, j))
+      ) : null;
+    };
+  }
+  function walkComponent(el, host) {
+    const name = el.getAttribute("name") || el.getAttribute("component") || "";
+    el.removeAttribute("name");
+    el.removeAttribute("component");
+    const tplId = el.getAttribute("data-dc-tpl");
+    const styleRaw = el.getAttribute("style");
+    el.removeAttribute("style");
+    const styleGet = styleRaw != null ? compileAttr(styleRaw) : null;
+    const { propGetters, hintSize } = collectProps(el, true, host);
+    const kids = walkChildren(el, host);
+    return (vals, ctx, key) => {
+      const props = {
+        key,
+        __hintSize: hintSize,
+        __tplId: tplId,
+        __hostStyle: styleGet ? hostPositionStyle(styleGet(vals)) : void 0
+      };
+      for (const [k, g] of propGetters) props[k] = g(vals);
+      if (kids.length) props.children = kids.map((b, j) => b(vals, ctx, j));
+      return h(host.component(name), props);
+    };
+  }
+  function walkXImport(el, host) {
+    const globalNameGet = compileAttr(
+      el.getAttribute("component-from-global-scope") || ""
+    );
+    const exportNameGet = compileAttr(
+      el.getAttribute("component") || el.getAttribute("name") || ""
+    );
+    const url = el.getAttribute("from") || el.getAttribute("src") || el.getAttribute("import") || "";
+    const kind = /\.(jsx|tsx)(\?|#|$)/i.test(url) ? "jsx" : "js";
+    const tplId = el.getAttribute("data-dc-tpl");
+    const styleRaw = el.getAttribute("style");
+    el.removeAttribute("style");
+    const styleGet = styleRaw != null ? compileAttr(styleRaw) : null;
+    const wrap = tplId != null || styleGet != null;
+    const { propGetters, hintSize } = collectProps(el, true, host);
+    const hasContent = el.children.length > 0 || !!(el.textContent || "").trim();
+    const kids = hasContent ? walkChildren(el, host) : [];
+    const urlBindable = url.includes("{{");
+    if (url && !urlBindable) host.loadExternal(kind, url);
+    const evalName = (g, vals) => {
+      const v = g(vals);
+      const s = v == null ? "" : String(v);
+      return s.includes("{{") ? "" : s;
+    };
+    return (vals, ctx, key) => {
+      const globalName = evalName(globalNameGet, vals);
+      const name = globalName || evalName(exportNameGet, vals);
+      const C = !name || urlBindable ? null : globalName ? host.resolveExternalGlobal(url, globalName) : host.resolveExternal(url, name);
+      const hostStyle = styleGet ? hostPositionStyle(styleGet(vals)) : void 0;
+      const wrapper = wrap ? {
+        key,
+        className: "sc-host-x",
+        "data-dc-tpl": tplId,
+        style: hostStyle || { display: "contents" }
+      } : null;
+      if (!C) {
+        const error = urlBindable ? "x-import `from` cannot contain {{ \u2026 }} \u2014 module URLs are resolved at parse time; use a literal URL" : host.resolveExternalError(url, name);
+        const ph = host.placeholder({
+          key: wrapper ? void 0 : key,
+          name,
+          hintSize,
+          error
+        });
+        return wrapper ? h("div", wrapper, ph) : ph;
+      }
+      const props = wrapper ? {} : { key };
+      let unresolvedHole = false;
+      for (const [k, g] of propGetters) {
+        if (k === "component" || k === "componentFromGlobalScope" || k === "name" || k === "from" || k === "src" || k === "import") {
+          continue;
+        }
+        const v = g(vals);
+        if (v === void 0) unresolvedHole = true;
+        props[k] = v;
+      }
+      if (unresolvedHole && ctx?.__htmlStreamingNow) {
+        const ph = host.placeholder({
+          key: wrapper ? void 0 : key,
+          name,
+          hintSize,
+          error: null
+        });
+        return wrapper ? h("div", wrapper, ph) : ph;
+      }
+      if (kids.length) props.children = kids.map((b, j) => b(vals, ctx, j));
+      return wrapper ? h("div", wrapper, h(C, props)) : h(C, props);
+    };
+  }
+  function walkElement(el, host) {
+    const realTag = RAW_UNWRAP[el.localName] || el.localName;
+    const tplId = el.getAttribute("data-dc-tpl");
+    const { propGetters, pseudoClasses } = collectProps(el, false, host);
+    const kids = walkChildren(el, host);
+    return (vals, ctx, key) => {
+      const props = { key, "data-dc-tpl": tplId };
+      for (const [k, g] of propGetters) {
+        let v = g(vals);
+        if (k === "style" && typeof v === "string") v = cssToObj(v);
+        if ((k === "value" || k === "checked") && v === void 0) {
+          v = k === "checked" ? false : "";
+        }
+        props[k] = v;
+      }
+      if (pseudoClasses.length) {
+        props.className = [props.className, ...pseudoClasses].filter(Boolean).join(" ");
+      }
+      return h(realTag, props, ...kids.map((b, j) => b(vals, ctx, j)));
+    };
+  }
+
+  // src/logic.ts
+  var StreamableLogic = class {
+    constructor(props) {
+      __publicField(this, "props");
+      __publicField(this, "state", {});
+      /** Back-pointer to the wrapper component, installed after construction. */
+      __publicField(this, "__host");
+      this.props = props || {};
+    }
+    setState(update, cb) {
+      this.__host && this.__host.__setLogicState(update, cb);
+    }
+    forceUpdate() {
+      this.__host && this.__host.forceUpdate();
+    }
+    componentDidMount() {
+    }
+    componentDidUpdate(_prevProps) {
+    }
+    componentWillUnmount() {
+    }
+    /** The flat object the template renders against (merged over props). */
+    renderVals() {
+      return {};
+    }
+  };
+  function evalDcLogic(src) {
+    //! nosemgrep: eval-and-function-constructor
+    const fn = new Function(
+      "DCLogic",
+      "StreamableLogic",
+      "React",
+      src + '\n;return (typeof Component!=="undefined"&&Component)||undefined;'
+    );
+    return fn(StreamableLogic, StreamableLogic, getReact());
+  }
+
+  // src/component.ts
+  function shallowEqual(a, b) {
+    if (!b) return false;
+    const ak = Object.keys(a).filter((k) => k !== "children");
+    const bk = Object.keys(b).filter((k) => k !== "children");
+    if (ak.length !== bk.length) return false;
+    for (const k of ak) if (a[k] !== b[k]) return false;
+    return true;
+  }
+  function Placeholder({
+    name,
+    hintSize,
+    streaming,
+    error
+  }) {
+    const [w, hgt] = (hintSize || "100%,60px").split(",");
+    return h(
+      "div",
+      {
+        className: "sc-placeholder" + (streaming ? " sc-streaming" : ""),
+        style: { width: w.trim(), height: hgt && hgt.trim() },
+        title: name
+      },
+      error ? h(
+        "div",
+        { className: "sc-placeholder-error" },
+        (name ? name + ": " : "") + error
+      ) : null
+    );
+  }
+  function hintToMin(hint) {
+    if (!hint) return void 0;
+    const [w, hgt] = hint.split(",");
+    return { minWidth: w.trim(), minHeight: hgt && hgt.trim() };
+  }
+  function createComponentFactory(registry, ensureFetched) {
+    const React = getReact();
+    const AncestorContext = React.createContext([]);
+    class StreamableComponent extends React.Component {
+      constructor(props) {
+        super(props);
+        __publicField(this, "__name");
+        __publicField(this, "__sub");
+        __publicField(this, "__needsDidMount", false);
+        /** Snapshot of the registry's streaming flags taken at render time —
+         *  builders read it off the RenderCtx (this) to pick placeholder vs
+         *  render-nothing for unresolved values. */
+        __publicField(this, "__streamingNow", false);
+        __publicField(this, "__htmlStreamingNow", false);
+        /** When a construct throws, remember the (class, registry.ver, props)
+         *  triple so render-time reconcile doesn't re-attempt it on every parent
+         *  re-render. A registry bump (new class, template, external module
+         *  resolving via bumpAll) changes `ver` and breaks the memo so an
+         *  env-dependent constructor can self-heal. */
+        __publicField(this, "__failedLogic", null);
+        __publicField(this, "__failedUserProps", null);
+        __publicField(this, "__failedVer", -1);
+        /** Per-instance constructor error — kept here (not on the registry entry)
+         *  so one instance's successful construct can't hide a sibling's failure,
+         *  and a construct can never wipe an eval error `updateJs` recorded on
+         *  `r.logicError`. */
+        __publicField(this, "__ctorError", null);
+        __publicField(this, "logic");
+        this.__name = props.__name;
+        this.state = { __v: 0, __err: null };
+        this.__sub = () => {
+          if (this.state.__err) this.setState({ __err: null });
+          this.forceUpdate();
+        };
+        this.__makeLogic(registry.get(this.__name).Logic, null);
+        ensureFetched(this.__name);
+      }
+      /** Error-boundary hook: a render crash anywhere in this DC's subtree
+       *  (its own template, an x-import'd component, a child DC without its
+       *  own deeper boundary) lands here instead of unmounting the page. */
+      static getDerivedStateFromError(e) {
+        return { __err: e instanceof Error && e.message ? e.message : String(e) };
+      }
+      componentDidCatch(e, info) {
+        console.error(
+          "[dc-runtime] render error in <" + this.__name + ">:",
+          e,
+          info?.componentStack || ""
+        );
+      }
+      /** Instantiate the logic class (or the no-op base) and adopt `prevState`
+       *  over its initial state — used both at mount and on hot-swap. */
+      __makeLogic(Logic, prevState) {
+        const L = Logic || StreamableLogic;
+        try {
+          this.logic = new L(this.__userProps());
+          this.__failedLogic = null;
+          this.__failedUserProps = null;
+          this.__ctorError = null;
+        } catch (e) {
+          console.error(e);
+          this.__failedLogic = Logic;
+          this.__failedUserProps = this.__userProps();
+          this.__failedVer = registry.get(this.__name).ver;
+          this.__ctorError = this.__name + ": " + (e instanceof Error && e.message ? e.message : String(e));
+          this.logic = new StreamableLogic(
+            this.__userProps()
+          );
+        }
+        this.logic.__host = this;
+        if (prevState)
+          this.logic.state = { ...this.logic.state || {}, ...prevState };
+      }
+      /** The props the author's logic + template see — internal __-prefixed
+       *  wiring stripped. */
+      __userProps() {
+        const { __name, __hintSize, __tplId, __hostStyle, ...rest } = this.props;
+        return rest;
+      }
+      __setLogicState(update, cb) {
+        const prev = this.logic.state;
+        const patch = typeof update === "function" ? update(prev) : update;
+        this.logic.state = { ...prev, ...patch };
+        this.setState((s) => ({ __v: s.__v + 1 }), cb);
+      }
+      /** Swap the logic instance when the registry's Logic class changed
+       *  (streaming completion, hot reload). State carries over; didMount
+       *  re-fires after the swap commits so refs exist. */
+      __reconcileLogic() {
+        const r = registry.get(this.__name);
+        const Next = r.Logic;
+        const Cur = this.logic.constructor;
+        if (Next === Cur || !Next && Cur === StreamableLogic || Next === this.__failedLogic && r.ver === this.__failedVer && shallowEqual(this.__userProps(), this.__failedUserProps)) {
+          return;
+        }
+        if (!this.__needsDidMount) {
+          try {
+            this.logic.componentWillUnmount();
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        this.__makeLogic(Next, this.logic.state);
+        this.__needsDidMount = true;
+      }
+      componentDidMount() {
+        registry.get(this.__name).subs.add(this.__sub);
+        try {
+          this.logic.componentDidMount();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      componentDidUpdate(prevProps) {
+        this.logic.props = this.__userProps();
+        if (this.__needsDidMount) {
+          if (this.state.__err || !registry.get(this.__name).tpl) return;
+          this.__needsDidMount = false;
+          try {
+            this.logic.componentDidMount();
+          } catch (e) {
+            console.error(e);
+          }
+        } else {
+          try {
+            this.logic.componentDidUpdate(prevProps);
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+      componentWillUnmount() {
+        registry.get(this.__name).subs.delete(this.__sub);
+        if (!this.__needsDidMount) {
+          try {
+            this.logic.componentWillUnmount();
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+      render() {
+        const r = registry.get(this.__name);
+        const cls = "sc-host" + (r.htmlStreaming ? " sc-streaming-html" : "") + (r.jsStreaming ? " sc-streaming-js" : "");
+        const hintStyle = r.htmlStreaming ? hintToMin(this.props.__hintSize) : void 0;
+        const hostStyle = this.props.__hostStyle || hintStyle ? { ...hintStyle || {}, ...this.props.__hostStyle || {} } : void 0;
+        const hostBase = {
+          className: cls,
+          style: hostStyle,
+          "data-sc-name": this.__name,
+          "data-dc-tpl": this.props.__tplId
+        };
+        const chain = Array.isArray(this.context) ? this.context : [];
+        if (chain.includes(this.__name)) {
+          const cycle = [
+            ...chain.slice(chain.indexOf(this.__name)),
+            this.__name
+          ].join(" \u2192 ");
+          return h(
+            "div",
+            { ...hostBase, className: cls + " sc-has-error" },
+            h(Placeholder, {
+              name: this.__name,
+              hintSize: this.props.__hintSize,
+              error: "circular import: " + cycle
+            })
+          );
+        }
+        if (this.state.__err) {
+          return h(
+            "div",
+            { ...hostBase, className: cls + " sc-has-error" },
+            h(
+              "div",
+              { className: "sc-logic-error" },
+              this.__name + ": " + this.state.__err
+            ),
+            h(Placeholder, {
+              name: this.__name,
+              hintSize: this.props.__hintSize,
+              error: this.state.__err
+            })
+          );
+        }
+        this.__reconcileLogic();
+        if (!r.tpl) {
+          return h(
+            "div",
+            hostBase,
+            h(Placeholder, { name: this.__name, hintSize: this.props.__hintSize })
+          );
+        }
+        const userProps = this.__userProps();
+        this.logic.props = userProps;
+        let vals = userProps;
+        let renderErr = r.logicError || this.__ctorError;
+        try {
+          vals = { ...userProps, ...this.logic.renderVals() || {} };
+        } catch (e) {
+          console.error(e);
+          renderErr = this.__name + ".renderVals(): " + (e instanceof Error && e.message ? e.message : String(e));
+        }
+        this.__streamingNow = !!(r.htmlStreaming || r.jsStreaming);
+        this.__htmlStreamingNow = !!r.htmlStreaming;
+        return h(
+          "div",
+          { ...hostBase, className: cls + (renderErr ? " sc-has-error" : "") },
+          renderErr && h("div", { className: "sc-logic-error" }, renderErr),
+          h(
+            AncestorContext.Provider,
+            { value: [...chain, this.__name] },
+            r.tpl(vals, this)
+          )
+        );
+      }
+    }
+    __publicField(StreamableComponent, "contextType", AncestorContext);
+    const named = /* @__PURE__ */ new Map();
+    function getDC(name) {
+      const hit = named.get(name);
+      if (hit) return hit;
+      function Dispatcher(p) {
+        const [, setTick] = React.useState(0);
+        React.useEffect(() => {
+          const sub = () => setTick((n) => n + 1);
+          registry.get(name).subs.add(sub);
+          return () => {
+            registry.get(name).subs.delete(sub);
+          };
+        }, []);
+        ensureFetched(name);
+        return h(StreamableComponent, { ...p, __name: name });
+      }
+      Dispatcher.displayName = name;
+      named.set(name, Dispatcher);
+      return Dispatcher;
+    }
+    return {
+      getDC,
+      StreamableComponent
+    };
+  }
+
+  // src/external.ts
+  var isCustomElementName = (n) => !n.includes(".") && n.includes("-");
+  function isRenderableType(g) {
+    if (typeof g === "function") return !isElementClass(g);
+    return typeof g === "object" && g !== null && typeof g.$$typeof === "symbol";
+  }
+  function resolveDottedPath(root, name) {
+    let cur = root;
+    for (const seg of name.split(".")) {
+      if (cur == null) return void 0;
+      cur = cur[seg];
+    }
+    return cur;
+  }
+  var BABEL_URL = "https://unpkg.com/@babel/standalone@7.26.4/babel.min.js";
+  var GLOBAL_POLL_INTERVAL_MS = 50;
+  var GLOBAL_POLL_TIMEOUT_MS = 3e4;
+  function createExternalModules(onResolved) {
+    const cache = /* @__PURE__ */ new Map();
+    let babelLoading = null;
+    const reportedMissing = /* @__PURE__ */ new Map();
+    const polling = /* @__PURE__ */ new Set();
+    function ensureBabel() {
+      if (window.Babel) return Promise.resolve();
+      if (babelLoading) return babelLoading;
+      babelLoading = new Promise((res, rej) => {
+        const s = document.createElement("script");
+        s.src = BABEL_URL;
+        s.crossOrigin = "anonymous";
+        s.onload = () => res();
+        s.onerror = rej;
+        document.head.appendChild(s);
+      });
+      return babelLoading;
+    }
+    function load(kind, url) {
+      if (cache.has(url)) return;
+      cache.set(url, null);
+      console.info("[dc-runtime] x-import: loading", url, "(" + kind + ")");
+      const ready = kind === "jsx" ? ensureBabel() : Promise.resolve();
+      ready.then(() => fetch(url)).then((r) => {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.text();
+      }).then((src) => {
+        const code = kind === "jsx" ? window.Babel.transform(src, {
+          filename: url,
+          presets: ["react", "typescript"]
+        }).code : src;
+        const module = { exports: {} };
+        const before = new Set(Object.keys(window));
+        //! nosemgrep: eval-and-function-constructor
+        new Function("React", "module", "exports", "require", code)(
+          getReact(),
+          module,
+          module.exports,
+          () => ({})
+        );
+        const globals = {};
+        for (const k of Object.keys(window)) {
+          if (!before.has(k) && typeof window[k] === "function") {
+            globals[k] = window[k];
+          }
+        }
+        cache.set(url, { mod: module.exports, globals });
+        console.info(
+          "[dc-runtime] x-import: loaded",
+          url,
+          "\u2014 exports:",
+          Object.keys(module.exports),
+          "window globals:",
+          Object.keys(globals)
+        );
+        onResolved();
+      }).catch((e) => {
+        cache.set(url, {
+          mod: {},
+          globals: {},
+          error: "failed to load: " + (e instanceof Error && e.message ? e.message : String(e))
+        });
+        console.error(
+          "[dc-runtime] x-import: FAILED to load",
+          url,
+          "(" + kind + ")",
+          e
+        );
+        onResolved();
+      });
+    }
+    function resolve2(url, name) {
+      const entry = cache.get(url);
+      if (!entry) return null;
+      const { mod, globals } = entry;
+      const C = mod && mod[name] || globals && globals[name] || typeof window !== "undefined" && window[name] || mod && mod.default;
+      if (typeof C === "function") return C;
+      const key = url + "\0" + name;
+      if (!reportedMissing.has(key)) {
+        reportedMissing.set(
+          key,
+          entry.error || 'no export named "' + name + '" (has: ' + Object.keys(mod).join(", ") + ")"
+        );
+        console.error(
+          "[dc-runtime] x-import: module",
+          url,
+          "loaded but has no component named",
+          JSON.stringify(name),
+          "\u2014 available exports:",
+          Object.keys(mod),
+          "window globals:",
+          Object.keys(globals),
+          ". The module must `module.exports = {" + name + "}` or set `window." + name + "`."
+        );
+      }
+      return null;
+    }
+    function waitForGlobal(name) {
+      if (polling.has(name)) return;
+      polling.add(name);
+      const started = Date.now();
+      const isCE = isCustomElementName(name);
+      const tick = () => {
+        const found = isCE ? customElements.get(name) : isRenderableType(resolveDottedPath(window, name));
+        if (found) {
+          polling.delete(name);
+          onResolved();
+          return;
+        }
+        if (Date.now() - started >= GLOBAL_POLL_TIMEOUT_MS) {
+          console.warn(
+            "[dc-runtime] x-import: global",
+            JSON.stringify(name),
+            "never appeared on window after " + GLOBAL_POLL_TIMEOUT_MS + "ms"
+          );
+          return;
+        }
+        setTimeout(tick, GLOBAL_POLL_INTERVAL_MS);
+      };
+      setTimeout(tick, GLOBAL_POLL_INTERVAL_MS);
+    }
+    function resolveGlobal(url, name) {
+      const isCE = isCustomElementName(name);
+      if (!url) {
+        if (isCE) {
+          if (customElements.get(name)) return name;
+          waitForGlobal(name);
+          return null;
+        }
+        const g2 = resolveDottedPath(window, name);
+        if (isRenderableType(g2)) return g2;
+        waitForGlobal(name);
+        return null;
+      }
+      const entry = cache.get(url);
+      if (!entry) return null;
+      if (isCE && customElements.get(name)) return name;
+      const g = entry.globals[name] ?? resolveDottedPath(window, name);
+      if (isRenderableType(g)) return g;
+      if (name.includes(".")) return null;
+      const key = url + "\0global\0" + name;
+      if (!reportedMissing.has(key)) {
+        reportedMissing.set(key, null);
+        if (isCE && !customElements.get(name)) {
+          console.warn(
+            "[dc-runtime] x-import:",
+            url,
+            "loaded but no custom element",
+            JSON.stringify(name),
+            "is registered and window." + name + " is not a function \u2014 rendering <" + name + "> as an unknown element."
+          );
+        }
+      }
+      return name;
+    }
+    function getError(url, name) {
+      const entry = cache.get(url);
+      if (entry?.error) return entry.error;
+      return reportedMissing.get(url + "\0" + name) || null;
+    }
+    return { load, resolve: resolve2, resolveGlobal, getError };
+  }
+  function isElementClass(g) {
+    try {
+      return typeof g === "function" && typeof HTMLElement !== "undefined" && g.prototype instanceof HTMLElement;
+    } catch {
+      return false;
+    }
+  }
+
+  // src/helmet.ts
+  function createHelmetManager(doc, isStreaming) {
+    const mounted = /* @__PURE__ */ new Set();
+    const live = /* @__PURE__ */ new Map();
+    function compile(node) {
+      const raw = [...node.children];
+      const helmetClosed = node.nextSibling != null || node.parentNode?.nextSibling != null;
+      return (_vals, ctx) => {
+        const name = ctx && ctx.__name || "";
+        const streaming = !!(name && isStreaming(name));
+        for (let i = 0; i < raw.length; i++) {
+          const child = raw[i];
+          const tag = child.tagName;
+          const mayBePartial = streaming && !helmetClosed && i === raw.length - 1;
+          if (tag === "SCRIPT") {
+            if (mayBePartial) continue;
+            const key = "SCRIPT|" + (child.getAttribute("src") || child.textContent || "");
+            if (mounted.has(key)) continue;
+            mounted.add(key);
+            const el = doc.createElement("script");
+            for (const { name: an, value } of [...child.attributes])
+              el.setAttribute(an, value);
+            if (child.textContent) el.textContent = child.textContent;
+            doc.head.appendChild(el);
+          } else if (tag === "LINK" || tag === "META") {
+            if (mayBePartial) continue;
+            const key = tag + "|" + (child.getAttribute("href") || child.getAttribute("src") || child.outerHTML);
+            if (mounted.has(key)) continue;
+            mounted.add(key);
+            doc.head.appendChild(child.cloneNode(true));
+          } else {
+            const key = name + "|" + i;
+            let el = live.get(key);
+            if (!el || el.tagName !== tag) {
+              if (el) el.remove();
+              el = doc.createElement(tag.toLowerCase());
+              live.set(key, el);
+              doc.head.appendChild(el);
+            }
+            for (const { name: an, value } of [...child.attributes]) {
+              if (el.getAttribute(an) !== value) el.setAttribute(an, value);
+            }
+            if (el.textContent !== child.textContent)
+              el.textContent = child.textContent;
+          }
+        }
+        return null;
+      };
+    }
+    return { compile };
+  }
+
+  // src/pseudo.ts
+  function createPseudoSheet(doc) {
+    let el = null;
+    const cache = /* @__PURE__ */ new Map();
+    let n = 0;
+    return (pseudo, css) => {
+      const k = pseudo + "|" + css;
+      const hit = cache.get(k);
+      if (hit) return hit;
+      if (!el) {
+        el = doc.createElement("style");
+        doc.head.appendChild(el);
+      }
+      const cls = "scp" + (n++).toString(36);
+      const sel = pseudo === "before" || pseudo === "after" ? "." + cls + "::" + pseudo : "." + cls + ":" + pseudo;
+      el.sheet.insertRule(sel + "{" + css + "}", el.sheet.cssRules.length);
+      cache.set(k, cls);
+      return cls;
+    };
+  }
+
+  // src/registry.ts
+  function createRegistry() {
+    const entries = /* @__PURE__ */ Object.create(null);
+    function get(name) {
+      return entries[name] || (entries[name] = {
+        html: "",
+        tpl: null,
+        Logic: null,
+        jsStreaming: false,
+        htmlStreaming: false,
+        ver: 0,
+        subs: /* @__PURE__ */ new Set(),
+        fetched: false
+      });
+    }
+    function bump(name) {
+      const r = get(name);
+      r.ver++;
+      for (const fn of r.subs) fn();
+    }
+    return {
+      entries,
+      get,
+      bump,
+      bumpAll() {
+        for (const n in entries) bump(n);
+      }
+    };
+  }
+
+  // src/runtime.ts
+  var COMPONENT_DIR = ".";
+  function createRuntime(doc = document) {
+    const registry = createRegistry();
+    const pseudoClass = createPseudoSheet(doc);
+    const helmet = createHelmetManager(
+      doc,
+      (name) => registry.get(name).htmlStreaming
+    );
+    const external = createExternalModules(() => registry.bumpAll());
+    const factory = createComponentFactory(registry, ensureFetched);
+    const host = {
+      component: (name) => factory.getDC(name),
+      placeholder: (props) => h(Placeholder, props),
+      helmet: (node) => helmet.compile(node),
+      loadExternal: (kind, url) => external.load(kind, url),
+      resolveExternal: (url, name) => external.resolve(url, name),
+      resolveExternalGlobal: (url, name) => external.resolveGlobal(url, name),
+      resolveExternalError: (url, name) => external.getError(url, name),
+      pseudoClass
+    };
+    function ensureFetched(name) {
+      const r = registry.get(name);
+      if (r.fetched) return;
+      r.fetched = true;
+      const url = COMPONENT_DIR + "/" + encodeURIComponent(name) + ".dc.html";
+      fetch(url).then((res) => {
+        if (!res.ok) {
+          console.error(
+            "[dc-runtime] sibling fetch for <" + name + "/> failed:",
+            url,
+            "returned",
+            res.status,
+            "\u2014 the reference renders as an empty placeholder."
+          );
+          return "";
+        }
+        return res.text();
+      }).then((t) => {
+        if (!t) return;
+        const parsed = parseDcText(t);
+        if (!parsed) {
+          console.error(
+            "[dc-runtime] sibling fetch for <" + name + "/>:",
+            url,
+            "has no <x-dc> block \u2014 not a Design Component."
+          );
+          return;
+        }
+        if (parsed.props) r.propsMeta = parsed.props;
+        if (parsed.preview) r.preview = parsed.preview;
+        if (parsed.template && !r.html) updateHtml(name, parsed.template);
+        if (parsed.js && !r.Logic) updateJs(name, parsed.js);
+      }).catch(
+        (e) => console.error(
+          "[dc-runtime] sibling fetch for <" + name + "/> threw:",
+          url,
+          e
+        )
+      );
+    }
+    function updateHtml(name, html) {
+      const r = registry.get(name);
+      r.html = html;
+      try {
+        r.tpl = compileTemplate(html, host);
+      } catch (e) {
+        console.error("[dc-runtime] template compile FAILED for", name, e);
+      }
+      registry.bump(name);
+    }
+    function updateJs(name, src) {
+      const r = registry.get(name);
+      const seq = r.jsSeq = (r.jsSeq || 0) + 1;
+      try {
+        const Cls = evalDcLogic(src);
+        if (r.jsSeq !== seq) return;
+        if (typeof Cls !== "function") {
+          r.logicError = name + ".dc.html: <script data-dc-script> must define `class Component extends DCLogic`";
+        } else {
+          r.logicError = null;
+          r.Logic = Cls;
+        }
+      } catch (e) {
+        if (r.jsSeq !== seq) return;
+        console.error(
+          "[dc-runtime] logic class eval FAILED for",
+          name,
+          "\u2014 the template renders with props only.",
+          e
+        );
+        r.logicError = name + ": " + (e instanceof Error && e.message ? e.message : String(e));
+      }
+      registry.bump(name);
+    }
+    function setStreaming(name, kind, on) {
+      const r = registry.get(name);
+      if (kind === "html") r.htmlStreaming = !!on;
+      else r.jsStreaming = !!on;
+      let any = false;
+      for (const n in registry.entries) {
+        const e = registry.entries[n];
+        if (e && (e.htmlStreaming || e.jsStreaming)) {
+          any = true;
+          break;
+        }
+      }
+      doc.documentElement.classList.toggle("sc-dc-streaming", any);
+      registry.bump(name);
+    }
+    function dcUpdate(name, kind, content, streaming) {
+      if (streaming) registry.get(name).fetched = true;
+      if (kind === "html") {
+        setStreaming(name, "html", !!streaming);
+        updateHtml(name, content);
+      } else if (kind === "js") {
+        setStreaming(name, "js", !!streaming);
+        if (!streaming) updateJs(name, content);
+      } else if (kind === "props") {
+        const { props, preview } = parseDataProps(content);
+        const r = registry.get(name);
+        r.propsMeta = props ?? void 0;
+        r.preview = preview;
+        registry.bump(name);
+      }
+    }
+    function setProps(name, overrides) {
+      registry.get(name).propOverrides = overrides && typeof overrides === "object" ? { ...overrides } : null;
+      registry.bump(name);
+    }
+    function adoptParsed(name, parsed) {
+      if (!parsed) return;
+      const r = registry.get(name);
+      if (parsed.props) r.propsMeta = parsed.props;
+      if (parsed.preview) r.preview = parsed.preview;
+      if (parsed.template) updateHtml(name, parsed.template);
+      if (parsed.js) updateJs(name, parsed.js);
+    }
+    return {
+      registry,
+      getDC: factory.getDC,
+      updateHtml,
+      updateJs,
+      dcUpdate,
+      setProps,
+      adoptParsed,
+      markFetched: (name) => {
+        registry.get(name).fetched = true;
+      },
+      annotatedTemplate: (name) => {
+        const r = registry.get(name);
+        return r.tpl && r.tpl.__annotated || null;
+      },
+      templateSource: (name) => registry.get(name).html || null,
+      StreamableLogic
+    };
+  }
+
+  // src/index.ts
+  var REACT_URL = "https://unpkg.com/react@18.3.1/umd/react.production.min.js";
+  var REACT_SRI = "sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z";
+  var REACT_DOM_URL = "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js";
+  var REACT_DOM_SRI = "sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1";
+  function hideRawTemplate() {
+    const s = document.createElement("style");
+    s.textContent = "x-dc{display:none!important}";
+    document.head.appendChild(s);
+  }
+  function loadScript(src, integrity) {
+    return new Promise((resolve2, reject) => {
+      //! nosemgrep: create-script-element
+      const s = document.createElement("script");
+      s.src = src;
+      s.integrity = integrity;
+      s.crossOrigin = "anonymous";
+      s.async = false;
+      s.onload = () => resolve2();
+      s.onerror = () => reject(new Error(`failed to load ${src}`));
+      document.head.appendChild(s);
+    });
+  }
+  function loadReactUmd() {
+    const w = window;
+    if (w.React && w.ReactDOM) return Promise.resolve();
+    return Promise.all([
+      loadScript(REACT_URL, REACT_SRI),
+      loadScript(REACT_DOM_URL, REACT_DOM_SRI)
+    ]).then(() => void 0);
+  }
+  function init() {
+    const runtime = createRuntime(document);
+    let rootName = "Root";
+    const baseCss = document.createElement("style");
+    baseCss.textContent = BASE_CSS;
+    document.head.prepend(baseCss);
+    const notifyHost = () => {
+      if (window.parent === window) return;
+      const r = runtime.registry.entries[rootName];
+      try {
+        window.parent.postMessage(
+          {
+            type: "__dc_booted",
+            rootName,
+            propsMeta: r && r.propsMeta || null,
+            preview: r && r.preview || null
+          },
+          "*"
+        );
+      } catch {
+      }
+    };
+    const api = {
+      __dcUpdate: (name, kind, content, streaming) => {
+        runtime.dcUpdate(name, kind, content, streaming);
+        if (name === rootName && !streaming && kind === "props") notifyHost();
+      },
+      __dcSetProps: (name, overrides) => runtime.setProps(name, overrides),
+      /** Name of the component currently mounted as the page root — DC tools
+       *  push their template-stream here when targeting "the open page". */
+      __dcRootName: () => rootName,
+      /** Editor bridge — the encoded, `data-dc-tpl`-annotated template source.
+       *  The host editor parses this into its own template DOM so it can map a
+       *  rendered node (carrying the same `data-dc-tpl`) back to the source
+       *  node that emitted it. Returns the encoded form (`<sc-comp>`,
+       *  `sc-camel-*` attrs); the editor decodes on serialize. */
+      __dcAnnotatedTemplate: (name) => runtime.annotatedTemplate(name),
+      /** Editor bridge — the *original* (decoded) template source. */
+      __dcTemplateSource: (name) => runtime.templateSource(name),
+      __dcBoot: () => {
+        rootName = boot(runtime, document) ?? rootName;
+        notifyHost();
+      },
+      __dcRegistry: runtime.registry.entries,
+      getDC: (name) => runtime.getDC(name),
+      // `DCLogic` is the documented base class name; `StreamableLogic` is the
+      // implementation alias kept for any project that already references it.
+      DCLogic: runtime.StreamableLogic,
+      StreamableLogic: runtime.StreamableLogic
+    };
+    Object.assign(window, api);
+    if (document.readyState !== "loading") api.__dcBoot();
+    else document.addEventListener("DOMContentLoaded", () => api.__dcBoot());
+  }
+  hideRawTemplate();
+  loadReactUmd().then(init).catch((err) => {
+    console.error("[dc] failed to load React or boot:", err);
+    throw err;
+  });
+})();
+
+</script>
+</head>
+<body>
+
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:#E7DAC0;color:#332A22;font-family:'Onest',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  ::selection{background:#E6B25A;color:#332A22}
+  input::placeholder{color:#b3a484}
+  @keyframes floatup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<div style="max-width:680px;margin:0 auto;background:#F4ECD9;min-height:100vh;box-shadow:0 0 60px rgba(51,42,34,.18)">
+
+  <nav style="position:sticky;top:0;z-index:40;background:rgba(244,236,217,.94);backdrop-filter:blur(8px);border-bottom:1px solid #D8C7A6">
+    <div style="display:flex;gap:6px;overflow-x:auto;padding:10px 14px;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.06em;font-size:13px;-webkit-overflow-scrolling:touch">
+      <a href="#hero" style="flex:none;text-decoration:none;color:#332A22;padding:5px 11px;border:1px solid #D8C7A6;border-radius:999px;background:#fff">SMR-26</a>
+      <a href="#base" style="flex:none;text-decoration:none;color:#5a4b3a;padding:5px 11px;border:1px solid #D8C7A6;border-radius:999px">База</a>
+      <a href="#program" style="flex:none;text-decoration:none;color:#5a4b3a;padding:5px 11px;border:1px solid #D8C7A6;border-radius:999px">Программа</a>
+      <a href="#map" style="flex:none;text-decoration:none;color:#5a4b3a;padding:5px 11px;border:1px solid #D8C7A6;border-radius:999px">Карта</a>
+      <a href="#checkpoints" style="flex:none;text-decoration:none;color:#5a4b3a;padding:5px 11px;border:1px solid #D8C7A6;border-radius:999px">📸 Моменты</a>
+      <a href="#bar" style="flex:none;text-decoration:none;color:#5a4b3a;padding:5px 11px;border:1px solid #D8C7A6;border-radius:999px">🍺 Счётчик</a>
+      <a href="#checklist" style="flex:none;text-decoration:none;color:#5a4b3a;padding:5px 11px;border:1px solid #D8C7A6;border-radius:999px">Чек-лист</a>
+      <a href="#planb" style="flex:none;text-decoration:none;color:#5a4b3a;padding:5px 11px;border:1px solid #D8C7A6;border-radius:999px">План Б</a>
+    </div>
+  </nav>
+
+  <!-- ============ HERO ============ -->
+  <section id="hero" style="scroll-margin-top:64px;position:relative;overflow:hidden;padding:30px 22px 38px;background:linear-gradient(180deg,#235D5A 0%,#2c6b63 46%,#C8841E 100%);color:#F4ECD9">
+    <div style="display:flex;justify-content:space-between;align-items:center;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.14em;font-size:11px;opacity:.92;border-bottom:1px dashed rgba(244,236,217,.45);padding-bottom:10px;margin-bottom:24px">
+      <span>Бортовой журнал</span>
+      <span>03–05 ИЮЛЯ 2026</span>
+    </div>
+
+    <div style="font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:.02em;line-height:.92;font-size:clamp(64px,19vw,120px);white-space:nowrap;text-shadow:0 3px 0 rgba(0,0,0,.12)">SMR-26</div>
+    <div style="font-family:'Oswald',sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.34em;font-size:clamp(15px,4.6vw,22px);margin-top:4px;color:#E6B25A">Volga Weekend Club</div>
+    <div style="display:flex;align-items:flex-end;gap:8px;margin-top:22px">
+      <div style="text-align:center;flex:none">
+        <div style="font-family:'Oswald',sans-serif;font-weight:600;font-size:clamp(15px,4.6vw,19px);letter-spacing:.03em;line-height:1">Москва</div>
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.18em;color:#E6B25A;margin-top:2px">DME</div>
+      </div>
+      <div style="flex:1;position:relative;height:20px;display:flex;align-items:center;align-self:center">
+        <div style="flex:1;border-top:1.5px dashed rgba(244,236,217,.55)"></div>
+        <span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(45deg);font-size:15px">✈</span>
+      </div>
+      <div style="text-align:center;flex:none">
+        <div style="font-family:'Oswald',sans-serif;font-weight:700;font-size:clamp(17px,5.2vw,22px);letter-spacing:.03em;line-height:1;color:#E6B25A">Самара</div>
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.18em;color:#E6B25A;margin-top:2px">KUF</div>
+      </div>
+      <div style="flex:1;position:relative;height:20px;display:flex;align-items:center;align-self:center">
+        <div style="flex:1;border-top:1.5px dashed rgba(244,236,217,.55)"></div>
+        <span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(45deg);font-size:15px">✈</span>
+      </div>
+      <div style="text-align:center;flex:none">
+        <div style="font-family:'Oswald',sans-serif;font-weight:600;font-size:clamp(15px,4.6vw,19px);letter-spacing:.03em;line-height:1">Москва</div>
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.18em;color:#E6B25A;margin-top:2px">VKO</div>
+      </div>
+    </div>
+    <p style="margin:18px 0 0;font-size:16px;line-height:1.5;max-width:32ch;color:#f7f1e2">Уехали на Волгу. Вернёмся отдохнувшими — не точно.</p>
+    <p style="margin:8px 0 0;font-size:13.5px;line-height:1.5;color:#E6B25A;font-style:italic">Девиз экипажа: «Сначала Волга — потом всё остальное».</p>
+    <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:14px">
+      <span style="white-space:nowrap;background:#E6B25A;color:#332A22;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:11px;padding:6px 11px;border-radius:7px;transform:rotate(-3deg);box-shadow:0 4px 9px rgba(0,0,0,.22)">🍺 Жигулёвское approved</span>
+      <span style="white-space:nowrap;background:#C45A28;color:#fff;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:11px;padding:6px 11px;border-radius:7px;transform:rotate(2.5deg);box-shadow:0 4px 9px rgba(0,0,0,.22)">🚢 Volga mode: on</span>
+      <span style="white-space:nowrap;background:#fff;color:#235D5A;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:11px;padding:6px 11px;border-radius:7px;transform:rotate(-1.5deg);box-shadow:0 4px 9px rgba(0,0,0,.22)">🚀 Самара космическая</span>
+      <span style="white-space:nowrap;background:#F4ECD9;color:#332A22;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:11px;padding:6px 11px;border-radius:7px;transform:rotate(1.5deg);box-shadow:0 4px 9px rgba(0,0,0,.22)">35+ и без фанатизма</span>
+    </div>
+
+    <!-- countdown -->
+    <div style="margin-top:26px;background:rgba(20,16,12,.22);border:1px solid rgba(244,236,217,.28);border-radius:14px;padding:16px 16px 18px">
+      <sc-if value="{{ isSamara }}" hint-placeholder-val="{{ false }}">
+        <div style="display:inline-flex;align-items:center;gap:7px;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.1em;font-size:13px;background:#C45A28;color:#fff;padding:4px 11px;border-radius:999px;margin-bottom:12px">Мы в Самаре 🚢</div>
+      </sc-if>
+      <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.12em;font-size:12px;opacity:.85;margin-bottom:10px">{{ label }}</div>
+      <sc-if value="{{ showCountdown }}" hint-placeholder-val="{{ true }}">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          <div style="background:#F4ECD9;color:#235D5A;border-radius:10px;padding:10px 4px;text-align:center">
+            <div style="font-family:'Oswald',sans-serif;font-weight:700;font-size:clamp(28px,9vw,40px);line-height:1">{{ cd.d }}</div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#8a6a3a;margin-top:2px">дней</div>
+          </div>
+          <div style="background:#F4ECD9;color:#235D5A;border-radius:10px;padding:10px 4px;text-align:center">
+            <div style="font-family:'Oswald',sans-serif;font-weight:700;font-size:clamp(28px,9vw,40px);line-height:1">{{ cd.h }}</div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#8a6a3a;margin-top:2px">часов</div>
+          </div>
+          <div style="background:#F4ECD9;color:#235D5A;border-radius:10px;padding:10px 4px;text-align:center">
+            <div style="font-family:'Oswald',sans-serif;font-weight:700;font-size:clamp(28px,9vw,40px);line-height:1">{{ cd.m }}</div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#8a6a3a;margin-top:2px">минут</div>
+          </div>
+          <div style="background:#F4ECD9;color:#235D5A;border-radius:10px;padding:10px 4px;text-align:center">
+            <div style="font-family:'Oswald',sans-serif;font-weight:700;font-size:clamp(28px,9vw,40px);line-height:1">{{ cd.s }}</div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#8a6a3a;margin-top:2px">секунд</div>
+          </div>
+        </div>
+      </sc-if>
+      <p style="margin:13px 0 0;font-size:12.5px;line-height:1.45;color:#f1e7d2;opacity:.92">Вылет 21:15 (DME) → посадка 00:10 в Курумоче. Отель ждёт с ночи 3 июля.</p>
+    </div>
+
+    <a href="#program" style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:22px;text-decoration:none;background:#332A22;color:#F4ECD9;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.1em;font-size:16px;padding:15px;border-radius:12px">Открыть программу ↓</a>
+  </section>
+
+  <!-- ============ БАЗА ============ -->
+  <section id="base" style="scroll-margin-top:64px;padding:34px 20px 8px">
+    <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#235D5A">01 · Бортовая база</div>
+    <h2 style="font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.02em;font-size:30px;margin:6px 0 5px;line-height:1">База поездки</h2>
+    <p style="margin:0 0 16px;font-size:13.5px;color:#7a6a52;font-style:italic">Всё, что нужно знать, пока такси ещё едет в Курумоч. 🚕</p>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="background:#fff;border:1px solid #D8C7A6;border-radius:14px;overflow:hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#235D5A;color:#F4ECD9;padding:9px 15px;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.1em;font-size:13px">
+          <span>✈️ Туда · 2 июля</span><span>NordStar Y7-4211</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 15px">
+          <div><div style="font-family:'Oswald',sans-serif;font-size:26px;font-weight:600;line-height:1">21:15</div><div style="font-size:12px;color:#7a6a52;margin-top:2px">Москва · DME</div></div>
+          <div style="flex:1;text-align:center;color:#C8841E;font-size:13px;padding:0 8px">· · · ✈ · · ·</div>
+          <div style="text-align:right"><div style="font-family:'Oswald',sans-serif;font-size:26px;font-weight:600;line-height:1">00:10</div><div style="font-size:12px;color:#7a6a52;margin-top:2px">Курумоч · KUF · 3 июля</div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:10px;padding:11px 15px;border-top:1px dashed #D8C7A6;font-size:12.5px;color:#5a4b3a">
+          <span>Бронь: <span data-copy="V50SGT" onClick="{{ copyEl }}" style="cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:.05em;border-bottom:1px dashed #C8841E;color:#332A22">V50SGT</span> ⧉</span>
+          <span>Кладь 10 кг · 55×40×23 · без багажа</span>
+        </div>
+      </div>
+
+      <div style="background:#fff;border:1px solid #D8C7A6;border-radius:14px;overflow:hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#C45A28;color:#F4ECD9;padding:9px 15px;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.1em;font-size:13px">
+          <span>✈️ Обратно · 5 июля</span><span>Победа DP-422</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 15px">
+          <div><div style="font-family:'Oswald',sans-serif;font-size:26px;font-weight:600;line-height:1">21:00</div><div style="font-size:12px;color:#7a6a52;margin-top:2px">Курумоч · KUF</div></div>
+          <div style="flex:1;text-align:center;color:#C8841E;font-size:13px;padding:0 8px">· · · ✈ · · ·</div>
+          <div style="text-align:right"><div style="font-family:'Oswald',sans-serif;font-size:26px;font-weight:600;line-height:1">21:50</div><div style="font-size:12px;color:#7a6a52;margin-top:2px">Внуково · VKO · терм. A</div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:10px;padding:11px 15px;border-top:1px dashed #D8C7A6;font-size:12.5px;color:#5a4b3a">
+          <span>Бронь: <span data-copy="V510TC" onClick="{{ copyEl }}" style="cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:.05em;border-bottom:1px dashed #C45A28;color:#332A22">V510TC</span> ⧉</span>
+          <span>Кладь 36×30×27 · без багажа</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;background:#3b2f24;color:#F4ECD9;border-radius:12px;padding:13px 15px;font-size:13.5px;line-height:1.5">
+      ⏰ <b>В аэропорт 5 июля — не позже 18:00.</b> Курумоч далеко от центра, выезд из города ~16:30–17:00.
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-top:14px">
+      <div style="background:#fff;border:1px solid #D8C7A6;border-radius:12px;padding:14px 15px">
+        <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.08em;font-size:13px;color:#235D5A;margin-bottom:5px">🏨 Отель</div>
+        <div style="font-weight:600;font-size:15px">HolidayHall Samara</div>
+        <div style="font-size:13.5px;color:#5a4b3a;margin-top:3px">ул. Алексея Толстого, 99</div>
+        <div style="font-size:13.5px;color:#5a4b3a;margin-top:4px">Рецепция: <a href="tel:+78463727000" style="color:#C45A28;text-decoration:none;border-bottom:1px dashed #C45A28">+7 (846) 372-70-00</a></div>
+        <div style="font-size:12.5px;color:#7a6a52;margin-top:6px">Бронь с 2 июля — ночной заезд безопасен, но отель предупредить.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="background:#fff;border:1px solid #D8C7A6;border-radius:12px;padding:14px 15px">
+          <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.08em;font-size:13px;color:#235D5A;margin-bottom:5px">🧖 SPA</div>
+          <div style="font-size:13.5px;color:#5a4b3a">Уровень −1, входит в проживание.</div>
+          <div style="font-size:13px;color:#332A22;margin-top:6px">Вых. 08:00–23:00<br>Будни 06:30–23:00</div>
+        </div>
+        <div style="background:#fff;border:1px solid #D8C7A6;border-radius:12px;padding:14px 15px">
+          <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.08em;font-size:13px;color:#235D5A;margin-bottom:5px">🚢 Речной вокзал</div>
+          <div style="font-size:13.5px;color:#5a4b3a">ул. Максима Горького, 82</div>
+          <div style="font-size:13px;color:#332A22;margin-top:6px">Старт пятничной Волги.</div>
+        </div>
+      </div>
+      <div style="background:#235D5A;color:#F4ECD9;border-radius:12px;padding:14px 15px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.08em;font-size:13px;color:#E6B25A;margin-bottom:4px">Экипаж</div>
+          <div style="font-family:'Oswald',sans-serif;font-size:22px;letter-spacing:.03em">Саша &amp; Витя</div>
+        </div>
+        <div style="font-size:34px">🍺🚢</div>
+      </div>
+    </div>
+
+    <!-- Самара, если кратко -->
+    <div style="margin-top:14px;background:#fbf3e0;border:1px dashed #C8841E;border-radius:12px;padding:14px 15px">
+      <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.06em;font-size:13px;color:#9a6a1e;margin-bottom:10px">Самара, если кратко 🤓</div>
+      <div style="display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px">
+        <div style="flex:none;width:188px;background:#fff;border:1px solid #e7d6b3;border-radius:10px;padding:11px 12px;font-size:12.5px;line-height:1.45;color:#5a4b3a">🚀 <b>Космическая столица.</b> Ракету «Союз», на которой летал Гагарин, собирали здесь. На монумент сходить обязательно.</div>
+        <div style="flex:none;width:188px;background:#fff;border:1px solid #e7d6b3;border-radius:10px;padding:11px 12px;font-size:12.5px;line-height:1.45;color:#5a4b3a">🍺 <b>Родина Жигулёвского.</b> Пивзавод фон Вакано работает с 1881 года. Считай, едем на историческую родину.</div>
+        <div style="flex:none;width:188px;background:#fff;border:1px solid #e7d6b3;border-radius:10px;padding:11px 12px;font-size:12.5px;line-height:1.45;color:#5a4b3a">🏞️ <b>Самая длинная набережная</b> в России — больше 4 км. Пешком до Заволги может и не дойти.</div>
+        <div style="flex:none;width:188px;background:#fff;border:1px solid #e7d6b3;border-radius:10px;padding:11px 12px;font-size:12.5px;line-height:1.45;color:#5a4b3a">⚔️ <b>Чапаев тут свой.</b> Памятник Чапаеву — один из крупнейших в стране. Селфи — по уставу.</div>
+        <div style="flex:none;width:188px;background:#fff;border:1px solid #e7d6b3;border-radius:10px;padding:11px 12px;font-size:12.5px;line-height:1.45;color:#5a4b3a">🐟 <b>Вобла к пиву</b> — не закуска, а образ жизни. Местные одобряют.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ПРОГРАММА ============ -->
+  <section id="program" style="scroll-margin-top:64px;padding:34px 20px 8px">
+    <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#235D5A">02 · Маршрут по дням</div>
+    <h2 style="font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;font-size:30px;margin:6px 0 5px;line-height:1">Программа</h2>
+    <p style="margin:0 0 14px;font-size:13.5px;color:#7a6a52;font-style:italic">Два с половиной дня, выверенные почти до миллилитра. Тапни день. 🍺</p>
+
+    <div style="position:sticky;top:55px;z-index:30;background:#F4ECD9;padding-top:6px;margin-bottom:14px">
+      <div style="display:flex;gap:5px;background:#ece1c8;padding:4px;border-radius:12px">
+        <sc-for list="{{ dayTabs }}" as="t" hint-placeholder-count="4">
+          <button onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <sc-if value="{{ isNight }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#fff;border:1px solid #D8C7A6;border-left:5px solid #235D5A;border-radius:12px;padding:15px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:12px">
+          <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.02em;font-size:18px;line-height:1.1">🌙 Ночь на пятницу · заезд</div>
+          <div style="font-size:12px;color:#7a6a52;white-space:nowrap">3 июля</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px;font-size:14px">
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:54px">00:10</span><span>Прилёт в Курумоч (время местное)</span></div>
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:54px">~00:30</span><span>Такси/трансфер в HolidayHall — ночью без общественного транспорта</span></div>
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:54px">~01:30</span><span>Заселение (отель предупреждён о ночном приезде)</span></div>
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:54px">→</span><span>Вода, душ, сон. Подвиги начинаются не раньше 10:30.</span></div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isFri }}" hint-placeholder-val="{{ true }}">
+      <div style="background:linear-gradient(180deg,#fff 0%,#fdf6e6 100%);border:1px solid #C8841E;border-left:5px solid #C8841E;border-radius:12px;padding:15px 16px;box-shadow:0 6px 18px rgba(200,132,30,.14)">
+        <div style="display:inline-block;background:#C8841E;color:#fff;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.1em;font-size:11px;padding:3px 9px;border-radius:999px;margin-bottom:10px">Главный день</div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:12px">
+          <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;font-size:18px;line-height:1.1">🚢🍺 Пятница · Волга + пивной вечер</div>
+          <div style="font-size:12px;color:#7a6a52;white-space:nowrap">3 июля</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px;font-size:14px">
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:62px">10:30</span><span>Поздний завтрак — не геройствуем после ночного перелёта</span></div>
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:62px">11:30</span><span>Выход к Речному вокзалу (М. Горького, 82)</span></div>
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:62px">12:00</span><span><b>Волга:</b> теплоход «Романтика мостов реки Самарки», 2,5 ч, гид + музыка. План Б — частный катер/яхта с тентом.</span></div>
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:62px">15:00</span><span>Отель, душ, обязательная пауза</span></div>
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:62px">18:30</span><span>Бар «На Дне» (Волжский пр., 4) — стол не на проходе</span></div>
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:62px">21:00+</span><span><b>Кухмистерская фон Вакано</b> (Красноармейская, 4): ужин в гастропабе «1903» с лагером фон Вакано + коктейли в «Юрике». До 00:00. Особняк основателя Жигулёвского завода — тематический финал.</span></div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isSat }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#fff;border:1px solid #D8C7A6;border-left:5px solid #235D5A;border-radius:12px;padding:15px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:12px">
+          <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;font-size:18px;line-height:1.1">🧖🔥 Суббота · восстановление + Заволга</div>
+          <div style="font-size:12px;color:#7a6a52;white-space:nowrap">4 июля</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px;font-size:14px">
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:62px">10:30</span><span>Завтрак без будильника</span></div>
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:62px">12:00</span><span>SPA HolidayHall — бассейн, сауна/хаммам</span></div>
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:62px">14:30</span><span>Лёгкий обед</span></div>
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:62px">16:00</span><span>Ленинградская + набережная, кофе, Волга, фото</span></div>
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:62px">19:00+</span><span><b>«Заволга»</b> (кухня костра, Milimon): шашлык, печёный картофель, бар «Переправа» с настойками и локальным пенным. Расслабленный финал. <i>Адрес и бронь уточнить.</i></span></div>
+        </div>
+        <div style="margin-top:11px;background:#f1f5f3;border-radius:10px;padding:10px 12px;font-size:12.5px;color:#235D5A;line-height:1.5">😎 <b>Если похмелья нет</b> — см. План Б, там бонусная программа на бодрое утро.</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isSun }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#fff;border:1px solid #D8C7A6;border-left:5px solid #C45A28;border-radius:12px;padding:15px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:12px">
+          <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;font-size:18px;line-height:1.1">🏛️✈️ Воскресенье · история (полдня) + вылет</div>
+          <div style="font-size:12px;color:#7a6a52;white-space:nowrap">5 июля</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px;font-size:14px">
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:62px">утром</span><span>Checkout, вещи в камеру хранения — дальше ходим налегке</span></div>
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:62px">10:00</span><span>Историческая прогулка (гид HolidayHall): старый город, модерн, пл. Куйбышева, театр оперы и балета, «запасная столица»</span></div>
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:62px">13:00</span><span>Обед в центре</span></div>
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C8841E;min-width:62px">14:30</span><span>Музей модерна (особняк Курлиной, Фрунзе, 159; вс 10:00–18:00)</span></div>
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C45A28;min-width:62px">~16:30</span><span>Забрать вещи, выезд в Курумоч — быть не позже 18:00</span></div>
+          <div style="display:flex;gap:11px"><span style="font-family:'Oswald',sans-serif;color:#C45A28;min-width:62px">21:00</span><span>Вылет DP-422 (Победа) → Внуково 21:50</span></div>
+        </div>
+        <details style="margin-top:13px;border-top:1px dashed #D8C7A6;padding-top:12px">
+          <summary style="cursor:pointer;list-style:none;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.06em;font-size:13px;color:#235D5A;display:flex;align-items:center;gap:7px">▸ Облегчённый вариант (без гонки)</summary>
+          <div style="margin-top:11px;font-size:13.5px;color:#5a4b3a;line-height:1.55;background:#f6efdd;border-radius:10px;padding:12px 13px">
+            Без полноценного гида — самостоятельная прогулка по Ленинградской / старому центру + Музей модерна. Медленнее, без гонки, больше пауз на кофе.
+            <div style="margin-top:9px;color:#7a6a52;font-size:12.5px">⚠️ Бункер Сталина в этот день почти наверняка не вписать — короткий день + график пн–пт.</div>
+          </div>
+        </details>
+      </div>
+    </sc-if>
+  </section>
+
+  <!-- ============ КАРТА ============ -->
+  <section id="map" style="scroll-margin-top:64px;padding:34px 20px 8px">
+    <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#235D5A">03 · Точки и маршруты</div>
+    <h2 style="font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;font-size:30px;margin:6px 0 5px;line-height:1">Карта точек</h2>
+    <p style="margin:0 0 16px;font-size:13.5px;color:#7a6a52;font-style:italic">Тыкаешь — открывается Яндекс. Заблудиться можно только в баре. 🍻</p>
+
+    <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.06em;font-size:13px;color:#7a6a52;margin-bottom:9px">Готовые маршруты →</div>
+    <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:22px">
+      <a target="_blank" rel="noopener" href="https://yandex.ru/maps/?rtext=Аэропорт Курумоч~Самара, улица Алексея Толстого, 99&rtt=auto" style="display:flex;justify-content:space-between;align-items:center;text-decoration:none;background:#235D5A;color:#F4ECD9;border-radius:10px;padding:12px 14px;font-size:13.5px"><span>🌙 Курумоч → HolidayHall</span><span style="font-family:'Oswald',sans-serif">↗</span></a>
+      <a target="_blank" rel="noopener" href="https://yandex.ru/maps/?rtext=Самара, улица Алексея Толстого, 99~Самара, улица Максима Горького, 82~Самара, Волжский проспект, 4~Самара, Красноармейская, 4&rtt=auto" style="display:flex;justify-content:space-between;align-items:center;text-decoration:none;background:#C8841E;color:#fff;border-radius:10px;padding:12px 14px;font-size:13.5px"><span>🚢🍺 Пт: отель → вокзал → На Дне → фон Вакано</span><span style="font-family:'Oswald',sans-serif">↗</span></a>
+      <a target="_blank" rel="noopener" href="https://yandex.ru/maps/?rtext=Самара, улица Алексея Толстого, 99~Самара, набережная~Самара, Заволга кухня костра&rtt=auto" style="display:flex;justify-content:space-between;align-items:center;text-decoration:none;background:#2c6b63;color:#F4ECD9;border-radius:10px;padding:12px 14px;font-size:13.5px"><span>🧖🔥 Сб: отель → набережная → Заволга</span><span style="font-family:'Oswald',sans-serif">↗</span></a>
+      <a target="_blank" rel="noopener" href="https://yandex.ru/maps/?rtext=Самара, улица Алексея Толстого, 99~Самара, Фрунзе, 159~Аэропорт Курумоч&rtt=auto" style="display:flex;justify-content:space-between;align-items:center;text-decoration:none;background:#C45A28;color:#fff;border-radius:10px;padding:12px 14px;font-size:13.5px"><span>🏛️✈️ Вс: отель → Музей модерна → Курумоч</span><span style="font-family:'Oswald',sans-serif">↗</span></a>
+    </div>
+
+    <div style="display:flex;gap:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:14px;padding-bottom:2px">
+      <sc-for list="{{ filterChips }}" as="c" hint-placeholder-count="5">
+        <button onClick="{{ c.onClick }}" style="{{ c.style }}">{{ c.label }}</button>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:11px">
+      <sc-for list="{{ placesView }}" as="p" hint-placeholder-count="6">
+        <div style="background:#fff;border:1px solid #D8C7A6;border-radius:12px;padding:13px 14px">
+          <div style="display:flex;justify-content:space-between;gap:8px">
+            <div style="font-weight:600;font-size:15px">{{ p.emoji }} {{ p.title }}</div>
+            <span style="font-size:11px;background:#eadfc6;color:#7a6a52;padding:2px 8px;border-radius:999px;height:fit-content;font-family:'Oswald',sans-serif;letter-spacing:.05em">{{ p.label }}</span>
+          </div>
+          <div style="font-size:13px;color:#5a4b3a;margin-top:3px">{{ p.sub }}</div>
+          <a target="_blank" rel="noopener" href="{{ p.url }}" style="display:inline-block;margin-top:9px;text-decoration:none;font-size:12.5px;color:#235D5A;border:1px solid #235D5A;border-radius:999px;padding:5px 12px">Открыть в Яндекс.Картах ↗</a>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- ============ ЧЕКПОИНТЫ ============ -->
+  <section id="checkpoints" style="scroll-margin-top:64px;padding:34px 20px 8px">
+    <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#235D5A">04 · Журнал моментов</div>
+    <h2 style="font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;font-size:30px;margin:6px 0 5px;line-height:1">Чекпоинты 📸</h2>
+    <p style="margin:0 0 14px;font-size:13.5px;color:#7a6a52;font-style:italic">Поймал момент — отметил. Фото или видео, любое место, даже не из программы.</p>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#235D5A;color:#F4ECD9;border-radius:12px;padding:12px 15px;margin-bottom:14px">
+      <span style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:14px">{{ cpText }}</span>
+      <span style="font-size:24px">📸</span>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <input value="{{ newCp }}" onInput="{{ onNewCpInput }}" onKeyDown="{{ onNewCpKey }}" placeholder="Свой момент: «вобла на набережной»…" style="flex:1;min-width:0;background:#fff;border:1px solid #D8C7A6;border-radius:10px;padding:11px 13px;font-size:14px;font-family:'Onest',sans-serif;color:#332A22;outline:none" />
+      <button onClick="{{ addCheckpoint }}" style="flex:none;background:#C8841E;color:#fff;border:none;border-radius:10px;padding:0 18px;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:14px;cursor:pointer">Добавить</button>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ cps }}" as="cp" hint-placeholder-count="5">
+        <div style="{{ cp.cardStyle }}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <div style="font-weight:600;font-size:14.5px;line-height:1.35">{{ cp.title }}</div>
+            <sc-if value="{{ cp.caught }}" hint-placeholder-val="{{ false }}">
+              <span style="flex:none;font-size:10.5px;background:#235D5A;color:#fff;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:999px;transform:rotate(-3deg)">поймано ✓</span>
+            </sc-if>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:11px;align-items:center;flex-wrap:wrap">
+            <button onClick="{{ cp.togglePhoto }}" style="{{ cp.photoStyle }}">📷 Фото</button>
+            <button onClick="{{ cp.toggleVideo }}" style="{{ cp.videoStyle }}">🎥 Видео</button>
+            <sc-if value="{{ cp.custom }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ cp.remove }}" style="margin-left:auto;background:none;border:none;color:#b3936a;font-size:13px;cursor:pointer;padding:6px">удалить ✕</button>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- ============ БОРТОВОЙ БАР ============ -->
+  <section id="bar" style="scroll-margin-top:64px;padding:34px 20px 8px">
+    <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#235D5A">05 · Бортовой бар</div>
+    <h2 style="font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;font-size:30px;margin:6px 0 5px;line-height:1">Счётчик 🍺</h2>
+    <p style="margin:0 0 14px;font-size:13.5px;color:#7a6a52;font-style:italic">Выпил — тапнул. Звание присвоится само. Совесть, как всегда, отдельно.</p>
+
+    <div style="background:linear-gradient(180deg,#fff 0%,#fdf6e6 100%);border:1px solid #C8841E;border-radius:14px;padding:18px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div>
+          <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.06em;font-size:12px;color:#9a8a6a">Звание экипажа</div>
+          <div style="font-family:'Onest',sans-serif;font-weight:700;font-size:18px;color:#9a6a1e;line-height:1.2;margin-top:3px">{{ barRankText }}</div>
+        </div>
+        <div style="text-align:right;flex:none">
+          <div style="font-family:'Oswald',sans-serif;font-size:46px;color:#C8841E;line-height:.9">{{ barTotal }}</div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#9a8a6a">всего</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:9px;margin-top:16px">
+        <button onClick="{{ addBeer }}" style="flex:1;background:#C8841E;color:#fff;border:none;border-radius:12px;padding:16px 6px;cursor:pointer;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.04em;font-size:16px;display:flex;flex-direction:column;align-items:center;gap:4px"><span style="font-size:26px">🍺</span><span>Пиво · {{ barBeer }}</span></button>
+        <button onClick="{{ addSpirit }}" style="flex:1;background:#235D5A;color:#fff;border:none;border-radius:12px;padding:16px 6px;cursor:pointer;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.04em;font-size:16px;display:flex;flex-direction:column;align-items:center;gap:4px"><span style="font-size:26px">🥃</span><span>Крепкое · {{ barSpirit }}</span></button>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;border-top:1px dashed #e7d6b3;padding-top:11px">
+        <button onClick="{{ undoDrink }}" style="font-family:'Onest',sans-serif;font-size:12.5px;color:#b3936a;background:none;border:none;cursor:pointer;padding:6px 4px">↩︎ отменить последнее</button>
+        <button onClick="{{ resetBar }}" style="font-family:'Onest',sans-serif;font-size:12px;color:#C45A28;background:none;border:1px solid #e0c3b3;border-radius:999px;padding:5px 12px;cursor:pointer">Сброс</button>
+      </div>
+    </div>
+
+    <p style="margin:13px 2px 0;font-size:11.5px;color:#9a8a6a;line-height:1.5">🚕 Звания — шутка. Чем больше «всего», тем громче титул. За руль после — ни Саша, ни Витя.</p>
+  </section>
+
+  <!-- ============ ЧЕК-ЛИСТ ============ -->
+  <section id="checklist" style="scroll-margin-top:64px;padding:34px 20px 8px">
+    <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#235D5A">06 · Сборы и контроль</div>
+    <h2 style="font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;font-size:30px;margin:6px 0 5px;line-height:1">Чек-лист</h2>
+    <p style="margin:0 0 14px;font-size:13.5px;color:#7a6a52;font-style:italic">Галочки живут в твоём телефоне. Совесть — отдельно. ✅</p>
+
+    <div style="position:sticky;top:55px;z-index:30;background:#F4ECD9;padding:10px 0 12px;border-bottom:1px solid #D8C7A6;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px">
+        <span style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.06em;font-size:14px;color:#332A22">{{ progressText }}</span>
+        <div style="display:flex;gap:6px">
+          <button onClick="{{ toggleHideDone }}" style="font-family:'Onest',sans-serif;font-size:12px;color:#235D5A;background:none;border:1px solid #bcd1cd;border-radius:999px;padding:4px 11px;cursor:pointer">{{ hideDoneLabel }}</button>
+          <button onClick="{{ resetChecklist }}" style="font-family:'Onest',sans-serif;font-size:12px;color:#C45A28;background:none;border:1px solid #e0c3b3;border-radius:999px;padding:4px 11px;cursor:pointer">Сбросить</button>
+        </div>
+      </div>
+      <div style="height:9px;background:#e3d6bb;border-radius:999px;overflow:hidden">
+        <div style="{{ progressFillStyle }}"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:11px">
+      <sc-for list="{{ groups }}" as="group" hint-placeholder-count="5">
+        <div style="background:#fff;border:1px solid #D8C7A6;border-radius:12px;overflow:hidden">
+          <button onClick="{{ group.toggle }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;background:none;border:none;cursor:pointer;padding:13px 14px;text-align:left">
+            <span style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.04em;font-size:14px;color:#332A22">{{ group.title }}</span>
+            <span style="display:flex;align-items:center;gap:9px">
+              <span style="{{ group.countStyle }}">{{ group.countText }}</span>
+              <span style="color:#C8841E;font-size:13px;width:14px;text-align:center">{{ group.chevron }}</span>
+            </span>
+          </button>
+          <sc-if value="{{ group.open }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:0 12px 13px;display:flex;flex-direction:column;gap:7px">
+              <sc-for list="{{ group.items }}" as="item" hint-placeholder-count="3">
+                <label onClick="{{ item.toggle }}" style="{{ item.rowStyle }}">
+                  <span style="position:relative;flex:none;width:21px;height:21px;border-radius:6px;border:2px solid #C8841E;display:flex;align-items:center;justify-content:center;margin-top:1px;color:#fff;font-size:13px;font-weight:700">
+                    <sc-if value="{{ item.checked }}" hint-placeholder-val="{{ false }}">
+                      <span style="position:absolute;width:21px;height:21px;background:#C8841E;border-radius:4px;display:flex;align-items:center;justify-content:center">✓</span>
+                    </sc-if>
+                  </span>
+                  <span style="{{ item.textStyle }}">{{ item.label }}</span>
+                </label>
+              </sc-for>
+              <sc-if value="{{ group.emptyHidden }}" hint-placeholder-val="{{ false }}">
+                <div style="text-align:center;color:#9a8a6a;font-size:13px;padding:8px">Всё готово в этом блоке 🎉</div>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- ============ ПЛАН Б ============ -->
+  <section id="planb" style="scroll-margin-top:64px;padding:34px 20px 8px">
+    <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#235D5A">07 · Если всё пошло не так (или слишком хорошо)</div>
+    <h2 style="font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;font-size:30px;margin:6px 0 5px;line-height:1">План Б и риски</h2>
+    <p style="margin:0 0 16px;font-size:13.5px;color:#7a6a52;font-style:italic">На случай, если Волга, погода или пятница окажутся сильнее нас.</p>
+
+    <div style="display:flex;flex-direction:column;gap:11px">
+      <div style="background:#fff;border:1px dashed #C8841E;border-radius:12px;padding:13px 15px">
+        <div style="font-weight:600;font-size:14.5px;color:#9a6a1e">🚢 «Волга не набрала группу»</div>
+        <div style="font-size:13.5px;color:#5a4b3a;margin-top:4px;line-height:1.5">Частный катер/яхта 2–4 ч: капитан, тент, аудиогид. Своя Волга, без расписания.</div>
+      </div>
+
+      <div style="background:#fff;border:1.5px solid #235D5A;border-radius:12px;padding:14px 15px">
+        <div style="display:inline-block;background:#235D5A;color:#F4ECD9;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.08em;font-size:11px;padding:3px 9px;border-radius:999px;margin-bottom:9px">Запасной план Волги</div>
+        <div style="font-weight:600;font-size:15px;color:#235D5A">⛈️ Плохая погода на Волге</div>
+        <div style="font-size:13px;color:#7a6a52;margin-top:3px;line-height:1.5">Проверяем прогноз накануне вечером и утром в пятницу. Открытый катер при ветре/ливне — нет. Выбираем по силе непогоды:</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:11px">
+          <div style="background:#f1f5f3;border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.5"><b style="color:#235D5A">A. Лёгкий дождь / ветер</b> — теплоход «Романтика мостов» с закрытым салоном, едем по плану. Берём ветровки, садимся в салон.</div>
+          <div style="background:#f1f5f3;border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.5"><b style="color:#235D5A">B. Сильный шторм / отмена рейса</b> — переносим Волгу на <b>субботу</b> (она свободнее), а пятницу делаем «сухопутно-пивной»: раньше едем в фон Вакано на экскурсию по Жигулёвскому заводу + На Дне.</div>
+          <div style="background:#f1f5f3;border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.5"><b style="color:#235D5A">C. Льёт все выходные</b> — Волгу не геройствуем. Вместо реки: SPA в HolidayHall, Музей модерна, Бункер Сталина, набережная между ливнями + долгий пивной вечер. Река — из окна теплохода-ресторана.</div>
+        </div>
+        <div style="font-size:12.5px;color:#9a6a1e;margin-top:10px;line-height:1.5">💡 Альтернатива открытому катеру в любой день: закрытая яхта/катер с каютой и тентом — капитан довезёт даже под моросью.</div>
+      </div>
+
+      <div style="background:linear-gradient(180deg,#fff 0%,#eef6f0 100%);border:1.5px solid #235D5A;border-radius:12px;padding:14px 15px">
+        <div style="display:inline-block;background:#1F8A5B;color:#fff;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.08em;font-size:11px;padding:3px 9px;border-radius:999px;margin-bottom:9px">Бонус, редкий сценарий</div>
+        <div style="font-weight:600;font-size:15px;color:#1F8A5B">😎 «Похмелья нет, мы бодры»</div>
+        <div style="font-size:13px;color:#7a6a52;margin-top:3px;line-height:1.5">Суббота, утро, голова свежая, силы есть. Грех простаивать — добиваем то, что не влезло в пятницу:</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:11px">
+          <div style="background:#eef6f0;border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.5"><b style="color:#1F8A5B">🚀 Космос.</b> Монумент ракеты «Союз» + музей «Самара Космическая» — то самое «главное из Самары», на что обычно не хватает времени.</div>
+          <div style="background:#eef6f0;border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.5"><b style="color:#1F8A5B">🚴 Набережная.</b> Прокат велосипедов или сапбордов по самой длинной набережной России, кофе, Волга, фото.</div>
+          <div style="background:#eef6f0;border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.5"><b style="color:#1F8A5B">🍺 Дубль пивного.</b> Экскурсия по Жигулёвскому пивзаводу + дегустация, раз пятничный вечер прошёл бодро.</div>
+          <div style="background:#eef6f0;border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.5"><b style="color:#1F8A5B">⚔️ Чапаев &amp; модерн.</b> Перенести воскресную историю на субботу днём — а вс оставить совсем расслабленным перед рейсом.</div>
+        </div>
+        <div style="font-size:12.5px;color:#1F8A5B;margin-top:10px;line-height:1.5">⚠️ Главное — не переусердствовать в субботу вечером, иначе бодрое воскресенье превратится в пункт «опаздываем к рейсу». 🙂</div>
+      </div>
+
+      <div style="background:#fff;border:1px dashed #C45A28;border-radius:12px;padding:13px 15px">
+        <div style="font-weight:600;font-size:14.5px;color:#C45A28">🥴 «Субботнее похмелье»</div>
+        <div style="font-size:13.5px;color:#5a4b3a;margin-top:4px;line-height:1.5">Только SPA, обед, короткая прогулка, Заволга вечером. Музеи отменяются без сожалений.</div>
+      </div>
+      <div style="background:#fff;border:1px dashed #C8841E;border-radius:12px;padding:13px 15px">
+        <div style="font-weight:600;font-size:14.5px;color:#9a6a1e">🥵 «+35 в воскресенье»</div>
+        <div style="font-size:13.5px;color:#5a4b3a;margin-top:4px;line-height:1.5">Старт пораньше, вода, музей в прохладе, такси между точками.</div>
+      </div>
+      <div style="background:#3b2f24;color:#F4ECD9;border-radius:12px;padding:13px 15px">
+        <div style="font-weight:600;font-size:14.5px;color:#E6B25A">⏰ «Опаздываем к рейсу»</div>
+        <div style="font-size:13.5px;color:#f1e7d2;margin-top:4px;line-height:1.5">Воскресенье без геройств: выезд в Курумоч строго ~16:30, история — по остаточному принципу.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ПОДВАЛ ============ -->
+  <footer style="background:#332A22;color:#d9cdb6;padding:30px 20px 40px;margin-top:24px">
+    <div style="font-family:'Oswald',sans-serif;font-weight:700;font-size:34px;color:#F4ECD9;letter-spacing:.04em">SMR-26</div>
+    <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.22em;font-size:11px;color:#E6B25A;margin-top:2px">Volga Weekend Club</div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin:18px 0">
+      <a target="_blank" rel="noopener" href="https://yandex.ru/maps/?text=HolidayHall Samara" style="text-decoration:none;color:#d9cdb6;font-size:12.5px;border:1px solid #56473494;border-radius:999px;padding:5px 11px">HolidayHall ↗</a>
+      <a target="_blank" rel="noopener" href="https://yandex.ru/maps/?text=Самара речные прогулки Речной вокзал" style="text-decoration:none;color:#d9cdb6;font-size:12.5px;border:1px solid #56473494;border-radius:999px;padding:5px 11px">Речные прогулки ↗</a>
+      <a target="_blank" rel="noopener" href="https://yandex.ru/maps/?text=Самара, Фрунзе, 159 Музей модерна" style="text-decoration:none;color:#d9cdb6;font-size:12.5px;border:1px solid #56473494;border-radius:999px;padding:5px 11px">Музей модерна ↗</a>
+      <a target="_blank" rel="noopener" href="https://yandex.ru/maps/?text=Самара монумент ракета Союз" style="text-decoration:none;color:#d9cdb6;font-size:12.5px;border:1px solid #56473494;border-radius:999px;padding:5px 11px">Ракета «Союз» ↗</a>
+    </div>
+
+    <p style="font-size:13px;line-height:1.6;color:#bdae93;max-width:42ch;margin:0">Сделано на двоих с любовью к Волге и Жигулёвскому. 🍺</p>
+    <div style="margin-top:14px;font-size:11px;color:#857250;font-family:'Oswald',sans-serif;letter-spacing:.1em">SMR-26 · 03–05 ИЮЛЯ 2026 · САША &amp; ВИТЯ</div>
+  </footer>
+
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;background:#332A22;color:#F4ECD9;padding:11px 18px;border-radius:999px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.3);animation:floatup .25s ease">{{ toast }}</div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { checked: {}, now: Date.now(), toast: '', day: 'fri', filter: 'all', openGroups: {}, hideDone: false, checkpoints: null, newCp: '', bar: [] };
+
+  barRank(n) {
+    if (n === 0) return 'Трезв как стёклышко 🫥';
+    if (n <= 2) return 'Разминка перед Волгой';
+    if (n <= 4) return 'Юнга пенного флота 🍺';
+    if (n <= 6) return 'Боцман Жигулёвского';
+    if (n <= 9) return 'Капитан теплохода 🚢';
+    if (n <= 12) return 'Адмирал Волжской флотилии';
+    if (n <= 16) return 'Гроза фон Вакано';
+    return 'Легенда Самары · памятник себе 🗿';
+  }
+
+  get checklistData() {
+    return [
+      { title: 'Сделать сейчас', items: [
+        { id: 'now1', label: 'Предупредить HolidayHall о ночном заезде 3 июля, ~01:30' },
+        { id: 'now2', label: 'Выбрать пятничную Волгу (приоритет — теплоход 2,5 ч)' },
+        { id: 'now3', label: 'Уточнить у теплохода: время, причал, гид, палуба, перенос по погоде' },
+        { id: 'now4', label: 'Забронировать «На Дне» на пт ~18:30, стол не на проходе' },
+        { id: 'now5', label: 'Забронировать стол в Кухмистерской фон Вакано на пт ~21:00' },
+        { id: 'now6', label: 'Уточнить адрес и забронировать «Заволгу» на сб ~19:00' },
+        { id: 'now7', label: 'Решить по гиду на вс (полноценный или облегчённый день)' },
+        { id: 'now8', label: 'Проверить режим Музея модерна на вс' }
+      ]},
+      { title: 'За 3–5 дней до вылета', items: [
+        { id: 'pre1', label: 'Проверить погоду/ветер на Волге' },
+        { id: 'pre2', label: 'Подтвердить речную прогулку и место посадки' },
+        { id: 'pre3', label: 'Подтвердить столики (На Дне, фон Вакано, Заволга)' },
+        { id: 'pre4', label: 'Подтвердить гида (время, место, длительность)' },
+        { id: 'pre5', label: 'Сохранить все точки в Яндекс.Картах, скинуть друг другу' },
+        { id: 'pre6', label: 'Скриншоты броней: рейсы (V50SGT / V510TC), отель, Волга, рестораны' },
+        { id: 'pre7', label: 'Онлайн-регистрация на оба рейса (Победа берёт деньги за регистрацию в аэропорту)' }
+      ]},
+      { title: 'В день вылета из Москвы (2 июля)', items: [
+        { id: 'dep1', label: 'Паспорт, карты, наличные 5–10 тыс. на такси/чаевые' },
+        { id: 'dep2', label: 'Powerbank, зарядка, наушники, кабель, документы офлайн в телефоне' },
+        { id: 'dep3', label: 'Аптечка: сорбент, регидрон, обезболивающее, пластырь, от изжоги' },
+        { id: 'dep4', label: 'Одежда: футболка/рубашка, кроссовки, кепка/очки, ветровка на теплоход' },
+        { id: 'dep5', label: 'Уложиться в ручную кладь: туда 55×40×23 / 10 кг, обратно 36×30×27, без багажа' },
+        { id: 'dep6', label: 'В аэропорт Домодедово — к ~18:15 (вылет 21:15)' }
+      ]},
+      { title: 'Каждый день на месте', items: [
+        { id: 'day1', label: 'Телефон заряжен ≥70% перед выходом' },
+        { id: 'day2', label: 'Вода с собой (Волга и пешая прогулка)' },
+        { id: 'day3', label: 'Такси заранее под конкретное время' },
+        { id: 'day4', label: 'После пятницы суббота не раньше 10:30–11:00' },
+        { id: 'day5', label: 'В воскресенье — кроссовки и налегке (вещи в камере хранения)' }
+      ]},
+      { title: 'Обратная дорога (5 июля)', items: [
+        { id: 'ret1', label: 'Checkout утром, вещи в камеру хранения' },
+        { id: 'ret2', label: 'Выезд в Курумоч ~16:30–17:00, быть не позже 18:00' },
+        { id: 'ret3', label: '⚠️ Сувениры/пиво домой почти не увезти — багажа нет, ручная кладь Победы крошечная' }
+      ]}
+    ];
+  }
+
+  get places() {
+    return [
+      { emoji: '🏨', title: 'HolidayHall Samara', sub: 'А. Толстого, 99 · отель, SPA, гид', cat: 'base', label: 'БАЗА', q: 'Самара, улица Алексея Толстого, 99' },
+      { emoji: '🚢', title: 'Речной вокзал', sub: 'М. Горького, 82 · посадка на «Романтику мостов реки Самарки»', cat: 'volga', label: 'ВОЛГА', q: 'Самара, улица Максима Горького, 82' },
+      { emoji: '🚀', title: 'Монумент «Союз» / Самара Космическая', sub: 'пр. Ленина · та самая ракета. Для бодрого утра и фото', cat: 'volga', label: 'КОСМОС', q: 'Самара монумент ракета Союз' },
+      { emoji: '🍺', title: 'На Дне', sub: 'Волжский пр., 4 · первый акт пивного вечера, стол не на проходе', cat: 'beer', label: 'ПИВО', q: 'Самара, Волжский проспект, 4 На Дне' },
+      { emoji: '🍺', title: 'Кухмистерская фон Вакано', sub: 'Красноармейская, 4 · гастропаб «1903» + бар «Юрик». Особняк основателя Жигулёвского.', cat: 'beer', label: 'УЖИН', q: 'Самара, Красноармейская, 4 Кухмистерская фон Вакано' },
+      { emoji: '🔥', title: '«Заволга» (кухня костра)', sub: 'Адрес уточнить · шашлык, бар «Переправа», настойки. Финал субботы.', cat: 'beer', label: 'УЖИН', q: 'Самара, Заволга кухня костра' },
+      { emoji: '🍸', title: 'Посольство', sub: 'Фрунзе, 113 · коктейли, опция на вечер', cat: 'bar', label: 'БАР', q: 'Самара, Фрунзе, 113 Посольство бар' },
+      { emoji: '🍸', title: 'IDOL Tiki Bar', sub: 'Молодогвардейская, 66 · тики-коктейли, опция', cat: 'bar', label: 'БАР', q: 'Самара, Молодогвардейская, 66 IDOL Tiki Bar' },
+      { emoji: '🏛️', title: 'Музей модерна', sub: 'Особняк Курлиной, Фрунзе, 159 · вс 10:00–18:00', cat: 'history', label: 'ИСТОРИЯ', q: 'Самара, Фрунзе, 159 Музей модерна' },
+      { emoji: '🏛️', title: 'Площадь Куйбышева', sub: 'Театр оперы и балета, «запасная столица»', cat: 'history', label: 'ИСТОРИЯ', q: 'Самара, площадь Куйбышева' },
+      { emoji: '🎖️', title: 'Бункер Сталина (опция)', sub: 'Фрунзе, 167 · график пн–пт, в вс почти не вписать', cat: 'history', label: 'ИСТОРИЯ', q: 'Самара, Фрунзе, 167 Бункер Сталина' },
+      { emoji: '✈️', title: 'Аэропорт Курумоч', sub: 'KUF · быть не позже 18:00 в вс', cat: 'fly', label: 'ВЫЛЕТ', q: 'Аэропорт Курумоч' }
+    ];
+  }
+
+  defaultCheckpoints() {
+    return [
+      { id: 'c1', title: 'Чёкнуться кружками на теплоходе 🍻', photo: false, video: false, custom: false },
+      { id: 'c2', title: 'Фото Жигулёвского на фоне Волги', photo: false, video: false, custom: false },
+      { id: 'c3', title: 'Видео, как теплоход отходит от причала', photo: false, video: false, custom: false },
+      { id: 'c4', title: 'Селфи у Кухмистерской фон Вакано', photo: false, video: false, custom: false },
+      { id: 'c5', title: 'Закат над Волгой с набережной', photo: false, video: false, custom: false },
+      { id: 'c6', title: 'Кадр у ракеты «Союз» 🚀', photo: false, video: false, custom: false },
+      { id: 'c7', title: 'Фото на площади Куйбышева', photo: false, video: false, custom: false },
+      { id: 'c8', title: 'Шашлык у костра на «Заволге» 🔥', photo: false, video: false, custom: false }
+    ];
+  }
+
+  componentDidMount() {
+    let checked = {};
+    try { const s = JSON.parse(localStorage.getItem('smr26_checklist') || '{}'); if (s && typeof s === 'object') checked = s; } catch (e) {}
+    let cps = null;
+    try { const c = JSON.parse(localStorage.getItem('smr26_checkpoints') || 'null'); if (Array.isArray(c)) cps = c; } catch (e) {}
+    if (!cps) cps = this.defaultCheckpoints();
+    let bar = [];
+    try { const b = JSON.parse(localStorage.getItem('smr26_bar') || 'null'); if (Array.isArray(b)) bar = b; } catch (e) {}
+    const data = this.checklistData;
+    const openGroups = {};
+    for (let i = 0; i < data.length; i++) {
+      if (data[i].items.some(it => !checked[it.id])) { openGroups[i] = true; break; }
+    }
+    this.setState({ checked, checkpoints: cps, openGroups, bar });
+    this._t = setInterval(() => this.setState({ now: Date.now() }), 1000);
+  }
+  componentWillUnmount() { clearInterval(this._t); clearTimeout(this._toastT); }
+
+  toggle(id) {
+    this.setState(s => {
+      const checked = Object.assign({}, s.checked, { [id]: !s.checked[id] });
+      try { localStorage.setItem('smr26_checklist', JSON.stringify(checked)); } catch (e) {}
+      return { checked };
+    });
+  }
+  resetChecklist() {
+    try { localStorage.removeItem('smr26_checklist'); } catch (e) {}
+    this.setState({ checked: {} });
+    this.flash('Чек-лист сброшен');
+  }
+
+  setDay(d) { this.setState({ day: d }); }
+  setFilter(f) { this.setState({ filter: f }); }
+  toggleGroup(i) { this.setState(s => ({ openGroups: Object.assign({}, s.openGroups, { [i]: !s.openGroups[i] }) })); }
+  toggleHideDone() { this.setState(s => ({ hideDone: !s.hideDone })); }
+
+  persistCp(arr) { try { localStorage.setItem('smr26_checkpoints', JSON.stringify(arr)); } catch (e) {} }
+  toggleCap(id, kind) {
+    this.setState(s => {
+      const arr = (s.checkpoints || []).map(c => c.id === id ? Object.assign({}, c, { [kind]: !c[kind] }) : c);
+      this.persistCp(arr);
+      return { checkpoints: arr };
+    });
+  }
+  addCheckpoint() {
+    const t = (this.state.newCp || '').trim();
+    if (!t) return;
+    this.setState(s => {
+      const arr = (s.checkpoints || []).concat([{ id: 'u' + Date.now(), title: t, photo: false, video: false, custom: true }]);
+      this.persistCp(arr);
+      return { checkpoints: arr, newCp: '' };
+    });
+    this.flash('Чекпоинт добавлен 📍');
+  }
+  removeCheckpoint(id) {
+    this.setState(s => {
+      const arr = (s.checkpoints || []).filter(c => c.id !== id);
+      this.persistCp(arr);
+      return { checkpoints: arr };
+    });
+  }
+  onNewCpInput = (e) => { this.setState({ newCp: e.target.value }); };
+  onNewCpKey = (e) => { if (e.key === 'Enter') { e.preventDefault(); this.addCheckpoint(); } };
+
+  persistBar(bar) { try { localStorage.setItem('smr26_bar', JSON.stringify(bar)); } catch (e) {} }
+  addDrink(type) {
+    this.setState(s => { const bar = s.bar.concat([type]); this.persistBar(bar); return { bar }; });
+  }
+  undoDrink() {
+    this.setState(s => { if (!s.bar.length) return null; const bar = s.bar.slice(0, -1); this.persistBar(bar); return { bar }; });
+  }
+  resetBar() {
+    this.persistBar([]);
+    this.setState({ bar: [] });
+    this.flash('Счётчик обнулён 🫧');
+  }
+
+  flash(msg) {
+    clearTimeout(this._toastT);
+    this.setState({ toast: msg });
+    this._toastT = setTimeout(() => this.setState({ toast: '' }), 1700);
+  }
+  copyEl = (e) => {
+    const el = e.currentTarget;
+    const txt = (el.dataset && el.dataset.copy) || (el.textContent || '').trim();
+    try { navigator.clipboard.writeText(txt); } catch (err) {}
+    this.flash('Скопировано: ' + txt);
+  };
+
+  renderVals() {
+    const now = this.state.now;
+    const dep = Date.parse('2026-07-02T21:15:00+03:00');
+    const ret = Date.parse('2026-07-05T21:00:00+04:00');
+    let phase, target, label;
+    if (now < dep) { phase = 'before'; target = dep; label = 'До вылета из Москвы'; }
+    else if (now < ret) { phase = 'samara'; target = ret; label = 'До обратного рейса 5 июля'; }
+    else { phase = 'done'; target = null; label = 'Поездка завершена ✅'; }
+    let cd = { d: '00', h: '00', m: '00', s: '00' };
+    if (target) {
+      let diff = Math.max(0, target - now);
+      const p = (n) => String(n).padStart(2, '0');
+      const d = Math.floor(diff / 86400000); diff -= d * 86400000;
+      const h = Math.floor(diff / 3600000); diff -= h * 3600000;
+      const m = Math.floor(diff / 60000); diff -= m * 60000;
+      cd = { d: p(d), h: p(h), m: p(m), s: p(Math.floor(diff / 1000)) };
+    }
+
+    // Program tabs
+    const dayDefs = [['night', '🌙 Ночь'], ['fri', '🚢 Пт'], ['sat', '🧖 Сб'], ['sun', '🏛️ Вс']];
+    const tabBase = { flex: '1', padding: '9px 4px', border: 'none', borderRadius: '9px', cursor: 'pointer', fontFamily: "'Oswald',sans-serif", textTransform: 'uppercase', letterSpacing: '.03em', fontSize: '13px', whiteSpace: 'nowrap' };
+    const dayTabs = dayDefs.map(([k, l]) => ({ label: l, onClick: () => this.setDay(k), style: Object.assign({}, tabBase, this.state.day === k ? { background: '#235D5A', color: '#F4ECD9' } : { background: 'transparent', color: '#7a6a52' }) }));
+
+    // Map filter
+    const catDefs = [['all', 'Все'], ['volga', '🚢 Волга'], ['beer', '🍺 Пиво'], ['history', '🏛️ История'], ['bar', '🍸 Бары']];
+    const chipBase = { flex: 'none', padding: '7px 13px', borderRadius: '999px', cursor: 'pointer', fontFamily: "'Oswald',sans-serif", textTransform: 'uppercase', letterSpacing: '.04em', fontSize: '12px', border: '1px solid #D8C7A6' };
+    const filterChips = catDefs.map(([k, l]) => ({ label: l, onClick: () => this.setFilter(k), style: Object.assign({}, chipBase, this.state.filter === k ? { background: '#C8841E', color: '#fff', borderColor: '#C8841E' } : { background: '#fff', color: '#7a6a52' }) }));
+    const f = this.state.filter;
+    const placesView = this.places.filter(p => f === 'all' ? true : p.cat === f).map(p => ({
+      emoji: p.emoji, title: p.title, sub: p.sub, label: p.label,
+      url: 'https://yandex.ru/maps/?text=' + encodeURIComponent(p.q)
+    }));
+
+    // Checkpoints
+    const cbase = { border: '1px solid', borderRadius: '999px', padding: '6px 13px', fontSize: '12.5px', cursor: 'pointer', fontFamily: "'Onest',sans-serif", fontWeight: '600' };
+    const chip = (on) => on ? { background: '#C8841E', color: '#fff', borderColor: '#C8841E' } : { background: '#fff', color: '#7a6a52', borderColor: '#D8C7A6' };
+    const cpArr = this.state.checkpoints || [];
+    const cps = cpArr.map(cp => {
+      const caught = cp.photo || cp.video;
+      return {
+        title: cp.title, custom: cp.custom, caught,
+        photoStyle: Object.assign({}, cbase, chip(cp.photo)),
+        videoStyle: Object.assign({}, cbase, chip(cp.video)),
+        cardStyle: caught
+          ? { background: '#fbf3e0', border: '1.5px solid #C8841E', borderRadius: '12px', padding: '13px 14px' }
+          : { background: '#fff', border: '1px solid #D8C7A6', borderRadius: '12px', padding: '13px 14px' },
+        togglePhoto: () => this.toggleCap(cp.id, 'photo'),
+        toggleVideo: () => this.toggleCap(cp.id, 'video'),
+        remove: () => this.removeCheckpoint(cp.id)
+      };
+    });
+    const cpCaught = cps.filter(c => c.caught).length;
+
+    // Checklist accordion
+    const checkBase = { display: 'flex', gap: '11px', alignItems: 'flex-start', border: '1px solid #D8C7A6', borderRadius: '10px', padding: '11px 12px', cursor: 'pointer', fontSize: '14px', lineHeight: '1.4' };
+    const groups = this.checklistData.map((g, gi) => {
+      const items = g.items.map(it => {
+        const checked = !!this.state.checked[it.id];
+        return {
+          label: it.label, checked, toggle: () => this.toggle(it.id),
+          rowStyle: Object.assign({}, checkBase, checked ? { background: '#f3ecda', borderColor: '#e7dcc0', opacity: '.7' } : { background: '#fff' }),
+          textStyle: checked ? { textDecoration: 'line-through', color: '#9a8a6a' } : {}
+        };
+      });
+      const total = g.items.length;
+      const done = g.items.filter(it => this.state.checked[it.id]).length;
+      const complete = done === total;
+      const open = !!this.state.openGroups[gi];
+      const visItems = this.state.hideDone ? items.filter(it => !it.checked) : items;
+      return {
+        title: g.title, open, toggle: () => this.toggleGroup(gi), items: visItems,
+        countText: done + '/' + total,
+        countStyle: Object.assign({ fontFamily: "'Oswald',sans-serif", fontSize: '12px', padding: '2px 9px', borderRadius: '999px', letterSpacing: '.04em' }, complete ? { background: '#235D5A', color: '#fff' } : { background: '#f1e0c4', color: '#9a6a1e' }),
+        chevron: open ? '▾' : '▸',
+        emptyHidden: open && visItems.length === 0 && total > 0
+      };
+    });
+    // Bortovoy bar (общий счётчик экипажа)
+    const barArr = this.state.bar || [];
+    const barBeer = barArr.filter(x => x === 'beer').length;
+    const barSpirit = barArr.filter(x => x === 'spirit').length;
+    const barTotal = barArr.length;
+
+    const all = this.checklistData.reduce((a, g) => a + g.items.length, 0);
+    const ids = {};
+    this.checklistData.forEach(g => g.items.forEach(it => { ids[it.id] = true; }));
+    const doneCount = Object.keys(this.state.checked).filter(k => ids[k] && this.state.checked[k]).length;
+    const pct = all ? Math.round(doneCount / all * 100) : 0;
+
+    return {
+      phase, label, cd,
+      showCountdown: phase !== 'done',
+      isSamara: phase === 'samara',
+      dayTabs,
+      isNight: this.state.day === 'night',
+      isFri: this.state.day === 'fri',
+      isSat: this.state.day === 'sat',
+      isSun: this.state.day === 'sun',
+      filterChips, placesView,
+      cps,
+      cpText: cpArr.length ? ('Поймано ' + cpCaught + ' из ' + cpArr.length + ' моментов') : 'Лови моменты 📸',
+      newCp: this.state.newCp,
+      onNewCpInput: this.onNewCpInput,
+      onNewCpKey: this.onNewCpKey,
+      addCheckpoint: () => this.addCheckpoint(),
+      barTotal, barBeer, barSpirit,
+      barRankText: this.barRank(barTotal),
+      addBeer: () => this.addDrink('beer'),
+      addSpirit: () => this.addDrink('spirit'),
+      undoDrink: () => this.undoDrink(),
+      resetBar: () => this.resetBar(),
+      groups,
+      progressText: 'Готово ' + doneCount + ' из ' + all,
+      progressFillStyle: { height: '100%', background: 'linear-gradient(90deg,#C8841E,#E6B25A)', borderRadius: '999px', transition: 'width .35s ease', width: pct + '%' },
+      hideDone: this.state.hideDone,
+      hideDoneLabel: this.state.hideDone ? 'Показать всё' : 'Скрыть готовое',
+      toggleHideDone: () => this.toggleHideDone(),
+      resetChecklist: () => this.resetChecklist(),
+      toast: this.state.toast,
+      hasToast: !!this.state.toast,
+      copyEl: this.copyEl
+    };
+  }
+}
+</script>
+</body>
+</html>

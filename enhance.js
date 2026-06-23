@@ -160,7 +160,7 @@
     var img = document.createElement('img');
     img.src = it.src; img.loading = 'lazy'; img.alt = it.t;
     img.style.cssText = 'display:block;width:100%;height:auto;background:#eadfc6';
-    img.onerror = function () { card.style.display = 'none'; merchCheck(); };
+    img.onerror = function () { if (!img.dataset.retried) { img.dataset.retried = '1'; img.src = it.src + '?r=' + Date.now(); } };
     var cap = document.createElement('div');
     cap.style.cssText = 'padding:11px 13px';
     cap.innerHTML = '<div style="font-weight:600;font-size:14.5px">' + it.t + '</div>' +

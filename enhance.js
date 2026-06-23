@@ -16,6 +16,10 @@
     '#dc-root{height:auto!important}',
     // safe-area: в PWA (standalone) статус-бар/чёлка наезжали на меню — отодвигаем
     '#dc-root nav{padding-top:env(safe-area-inset-top)!important}',
+    // подсказка горизонтального скролла меню — затухание у правого края
+    '#dc-root nav::after{content:"";position:absolute;top:0;right:0;bottom:0;width:34px;pointer-events:none;background:linear-gradient(90deg,rgba(244,236,217,0),rgba(244,236,217,.92))}',
+    // контраст: затемняем приглушённые курсивные подписи в секциях (кроме hero — там светлый текст)
+    '#dc-root section:not([id="hero"]) p[style*="italic"]{color:#5a4b3a!important}',
     '.smr-fab{position:fixed;right:14px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:90;display:flex;flex-direction:column;gap:10px;align-items:flex-end;font-family:Onest,sans-serif}',
     '.smr-links{display:none;flex-direction:column;gap:8px;align-items:flex-end}',
     '.smr-links.open{display:flex}',
@@ -47,17 +51,8 @@
   var fab = document.createElement('div');
   fab.className = 'smr-fab';
   fab.innerHTML =
-    '<div class="smr-links" id="smrLinks">' +
-      '<a class="smr-lnk" href="/gallery.html">📸 Галерея</a>' +
-      '<a class="smr-lnk" href="/map.html">🗺️ Карта</a>' +
-      '<a class="smr-lnk" href="/crew.html">👥 Экипаж</a>' +
-    '</div>' +
-    '<button class="smr-menu" id="smrMenu">🧭 Разделы</button>' +
     '<button class="smr-wbtn" id="smrW"><span>🌦️</span><span class="t" id="smrWt">…</span><span style="font-size:12px;opacity:.85">Самара</span></button>';
   document.body.appendChild(fab);
-  document.getElementById('smrMenu').onclick = function () {
-    document.getElementById('smrLinks').classList.toggle('open');
-  };
 
   // Перехват кнопок «Фото/Видео» в чекпойнтах → открыть загрузку в галерею с подписью.
   // Capture-фаза на document срабатывает раньше React-обработчика (React 18 слушает на #dc-root).

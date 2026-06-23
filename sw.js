@@ -1,6 +1,6 @@
 /* SMR-26 service worker — network-first, чтобы контент был свежим, с офлайн-фолбэком из кэша. */
-var CACHE = 'smr26-v3';
-var SHELL = ['/', '/index.html', '/gallery.html', '/enhance.js', '/manifest.webmanifest',
+var CACHE = 'smr26-v4';
+var SHELL = ['/', '/index.html', '/gallery.html', '/map.html', '/crew.html', '/enhance.js?v=4', '/manifest.webmanifest',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-180.png'];
 
 self.addEventListener('install', function (e) {

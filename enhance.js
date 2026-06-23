@@ -112,20 +112,18 @@
     return {bg:'#e7f3ec',bd:'#bfe3cd',cl:'#1F8A5B',t:'<b>По плану ✓</b> Погода благоприятная — открытый катер/теплоход по Волге без ограничений.'};
   }
 
-  // грузим погоду через свой сервер (api.open-meteo.com напрямую из РФ часто недоступен)
-  var url='/api/weather.php';
-
-  fetch(url).then(function(r){return r.json();}).then(function(j){
+  // рендер погоды (вызывается и для кэша из localStorage, и для свежих данных)
+  function renderWeather(j){
+    if(!j||!j.current) return;
     var t=Math.round(j.current.temperature_2m);
     var cw=wmo(j.current.weather_code);
     document.getElementById('smrWt').textContent=(t>0?'+':'')+t+'°';
-    document.querySelector('#smrW span').textContent=cw[0];
+    var sp=document.querySelector('#smrW span'); if(sp) sp.textContent=cw[0];
 
     var html='<h4>Погода в Самаре</h4>'+
       '<div class="smr-now"><span class="big">'+cw[0]+'</span><span class="deg">'+(t>0?'+':'')+t+'°</span><span class="desc">'+cw[1]+'<br>сейчас</span></div>';
 
-    // прогноз на даты поездки
-    var dd=j.daily, tripDays=[];
+    var dd=j.daily||{time:[]}, tripDays=[];
     html+='<h4 style="margin-top:13px">Прогноз на поездку · 3–5 июля</h4>';
     var inRange=false, cells='';
     TRIP.forEach(function(iso){
@@ -143,12 +141,22 @@
       var rec=recommend(tripDays);
       if(rec) html+='<div class="smr-rec" style="background:'+rec.bg+';border:1px solid '+rec.bd+';color:'+rec.cl+'">'+rec.t+'</div>';
     } else {
-      html+='<div style="font-size:12.5px;color:#9a8a6a;margin-top:6px">Точный прогноз появится ближе к дате (за ~16 дней). Сейчас следим за общей тенденцией.</div>';
+      html+='<div style="font-size:12.5px;color:#9a8a6a;margin-top:6px">Точный прогноз появится ближе к дате (за ~16 дней).</div>';
     }
     html+='<div class="smr-foot">данные Open-Meteo · обновляется автоматически</div>';
     document.getElementById('smrBody').innerHTML=html;
+  }
+
+  // 1) мгновенно показываем последнюю сохранённую погоду (без ожидания сети)
+  try{ var cached=JSON.parse(localStorage.getItem('smr_weather')||'null'); if(cached) renderWeather(cached); }catch(e){}
+
+  // 2) обновляем с сервера (антикэш ?t=), сохраняем результат
+  fetch('/api/weather.php?t='+Date.now()).then(function(r){return r.json();}).then(function(j){
+    if(j&&j.current){ try{localStorage.setItem('smr_weather',JSON.stringify(j));}catch(e){} renderWeather(j); }
   }).catch(function(){
-    document.getElementById('smrWt').textContent='—';
-    document.getElementById('smrBody').innerHTML='<h4>Погода в Самаре</h4><div style="font-size:13px;color:#9a8a6a;margin-top:8px">Не удалось загрузить прогноз. Проверь интернет и открой панель снова.</div>';
+    if(!localStorage.getItem('smr_weather')){
+      document.getElementById('smrWt').textContent='—';
+      document.getElementById('smrBody').innerHTML='<h4>Погода в Самаре</h4><div style="font-size:13px;color:#9a8a6a;margin-top:8px">Не удалось загрузить прогноз. Открой панель позже.</div>';
+    }
   });
 })();

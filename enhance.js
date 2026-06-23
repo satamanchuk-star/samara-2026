@@ -20,6 +20,10 @@
     '#dc-root nav::after{content:"";position:absolute;top:0;right:0;bottom:0;width:34px;pointer-events:none;background:linear-gradient(90deg,rgba(244,236,217,0),rgba(244,236,217,.92))}',
     // контраст: затемняем приглушённые курсивные подписи в секциях (кроме hero — там светлый текст)
     '#dc-root section:not([id="hero"]) p[style*="italic"]{color:#5a4b3a!important}',
+    // летящий самолётик: медленно скользит вдоль пунктира в hero
+    '@keyframes smrFly{0%{left:12%}100%{left:88%}}',
+    '.smr-plane{animation:smrFly 5s ease-in-out infinite alternate;will-change:left}',
+    '@media(prefers-reduced-motion:reduce){.smr-plane{animation:none}}',
     '.smr-fab{position:fixed;right:14px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:90;display:flex;flex-direction:column;gap:10px;align-items:flex-end;font-family:Onest,sans-serif}',
     '.smr-links{display:none;flex-direction:column;gap:8px;align-items:flex-end}',
     '.smr-links.open{display:flex}',

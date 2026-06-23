@@ -50,6 +50,10 @@
   .card{break-inside:avoid;margin:0 0 12px;background:#fff;border:1px solid #D8C7A6;border-radius:12px;overflow:hidden;cursor:pointer;position:relative}
   .card img,.card video{display:block;width:100%;height:auto;background:#eadfc6}
   .card .vbadge{position:absolute;top:8px;right:8px;background:rgba(35,93,90,.9);color:#fff;font-size:11px;font-family:'Oswald',sans-serif;letter-spacing:.05em;padding:3px 8px;border-radius:999px}
+  .card .delBtn{position:absolute;top:8px;left:8px;width:30px;height:30px;border:none;border-radius:50%;background:rgba(20,16,10,.55);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0}
+  .card .delBtn:hover{background:rgba(178,59,46,.92)}
+  .lb-del{position:absolute;top:14px;left:16px;display:flex;align-items:center;gap:6px;color:#fff;background:rgba(255,255,255,.15);border:none;border-radius:999px;height:42px;padding:0 16px;font-size:14px;cursor:pointer;font-family:'Onest',sans-serif}
+  .lb-del:hover{background:rgba(178,59,46,.92)}
   .meta{padding:9px 11px}
   .meta .who{font-weight:600;font-size:13px}
   .meta .cap{font-size:12.5px;color:#675a44;margin-top:2px;line-height:1.4}
@@ -107,6 +111,7 @@
 </div>
 
 <div class="lb" id="lb">
+  <button class="lb-del" id="lbDel">🗑 Удалить</button>
   <button class="lclose" id="lclose">✕</button>
   <button class="lnav lprev" id="lprev">‹</button>
   <button class="lnav lnext" id="lnext">›</button>
@@ -215,8 +220,9 @@ function render(){
       ? `<video src="${src}#t=0.1" preload="metadata" muted playsinline></video><span class="vbadge">🎥 видео</span>`
       : `<img src="${src}" loading="lazy" alt="">`;
     const cap = it.caption? `<div class="cap">${esc(it.caption)}</div>`:'';
-    c.innerHTML=`${media}<div class="meta"><div class="who">${esc(it.author||'Аноним')}</div>${cap}<div class="when">${timeAgo(it.ts)}</div></div>`;
+    c.innerHTML=`${media}<button class="delBtn" title="Удалить">🗑</button><div class="meta"><div class="who">${esc(it.author||'Аноним')}</div>${cap}<div class="when">${timeAgo(it.ts)}</div></div>`;
     c.onclick=()=>openLb(idx);
+    c.querySelector('.delBtn').onclick=(e)=>{e.stopPropagation();deleteItem(it.file);};
     grid.appendChild(c);
   });
 }
@@ -237,6 +243,27 @@ function showLb(){
 $('#lclose').onclick=closeLb;
 $('#lprev').onclick=()=>{cur=(cur-1+items.length)%items.length;showLb();};
 $('#lnext').onclick=()=>{cur=(cur+1)%items.length;showLb();};
+$('#lbDel').onclick=()=>{const it=items[cur];if(it)deleteItem(it.file);};
+
+// удаление по тому же кодовому слову, что и загрузка
+async function deleteItem(file){
+  if(!confirm('Удалить это фото/видео безвозвратно?'))return;
+  let pw=(localStorage.getItem('smr_pw')||'').trim();
+  if(!pw){ pw=(prompt('Кодовое слово для удаления:')||'').trim(); if(!pw)return; }
+  const fd=new FormData(); fd.append('pw',pw); fd.append('file',file);
+  try{
+    const r=await fetch('/api/delete.php',{method:'POST',body:fd});
+    const j=await r.json();
+    if(!j.ok){
+      if(r.status===403){ localStorage.removeItem('smr_pw'); alert('Неверное кодовое слово.'); }
+      else alert(j.error||'Не удалось удалить');
+      return;
+    }
+    localStorage.setItem('smr_pw',pw); // верный код запоминаем
+    if(lb.classList.contains('on'))closeLb();
+    load();
+  }catch(e){ alert('Ошибка сети при удалении'); }
+}
 lb.addEventListener('click',e=>{if(e.target===lb)closeLb();});
 document.addEventListener('keydown',e=>{if(!lb.classList.contains('on'))return;if(e.key==='Escape')closeLb();if(e.key==='ArrowLeft')$('#lprev').click();if(e.key==='ArrowRight')$('#lnext').click();});
 

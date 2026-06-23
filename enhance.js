@@ -14,14 +14,16 @@
     // #dc-root задаёт height:100vh с overflow:visible — контент вываливается за бокс,
     // из-за чего секции, добавленные после него, накладываются. height:auto чинит поток.
     '#dc-root{height:auto!important}',
-    '.smr-fab{position:fixed;right:14px;bottom:16px;z-index:90;display:flex;flex-direction:column;gap:10px;align-items:flex-end;font-family:Onest,sans-serif}',
+    // safe-area: в PWA (standalone) статус-бар/чёлка наезжали на меню — отодвигаем
+    '#dc-root nav{padding-top:env(safe-area-inset-top)!important}',
+    '.smr-fab{position:fixed;right:14px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:90;display:flex;flex-direction:column;gap:10px;align-items:flex-end;font-family:Onest,sans-serif}',
     '.smr-links{display:none;flex-direction:column;gap:8px;align-items:flex-end}',
     '.smr-links.open{display:flex}',
     '.smr-lnk{display:flex;align-items:center;gap:8px;background:#fff;color:#235D5A;text-decoration:none;border:1px solid #D8C7A6;border-radius:999px;padding:10px 16px;box-shadow:0 6px 18px rgba(0,0,0,.18);font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.04em;font-size:13px}',
     '.smr-menu{display:flex;align-items:center;gap:8px;background:#A86511;color:#fff;border:none;cursor:pointer;border-radius:999px;padding:12px 18px;box-shadow:0 6px 18px rgba(0,0,0,.22);font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.04em;font-size:14px}',
     '.smr-wbtn{display:flex;align-items:center;gap:8px;background:#235D5A;color:#F4ECD9;border:none;cursor:pointer;border-radius:999px;padding:10px 15px;box-shadow:0 6px 18px rgba(0,0,0,.22);font-family:Oswald,sans-serif;letter-spacing:.03em;font-size:14px}',
     '.smr-wbtn .t{font-size:18px;font-weight:700}',
-    '.smr-panel{position:fixed;right:14px;bottom:74px;z-index:91;width:300px;max-width:calc(100vw - 28px);background:#fff;border:1px solid #D8C7A6;border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.28);padding:15px 16px;display:none;font-family:Onest,sans-serif;color:#332A22}',
+    '.smr-panel{position:fixed;right:14px;bottom:calc(74px + env(safe-area-inset-bottom));z-index:91;width:300px;max-width:calc(100vw - 28px);background:#fff;border:1px solid #D8C7A6;border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.28);padding:15px 16px;display:none;font-family:Onest,sans-serif;color:#332A22}',
     '.smr-panel.on{display:block}',
     '.smr-panel h4{margin:0 0 2px;font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:13px;color:#235D5A}',
     '.smr-now{display:flex;align-items:center;gap:12px;margin:8px 0 4px}',
@@ -91,7 +93,7 @@
   var topBtn = document.createElement('button');
   topBtn.textContent = '↑';
   topBtn.setAttribute('aria-label', 'Наверх');
-  topBtn.style.cssText = 'position:fixed;left:14px;bottom:16px;z-index:89;width:46px;height:46px;border-radius:50%;border:none;background:#235D5A;color:#F4ECD9;font-size:22px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.22);opacity:0;pointer-events:none;transition:opacity .2s';
+  topBtn.style.cssText = 'position:fixed;left:14px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:89;width:46px;height:46px;border-radius:50%;border:none;background:#235D5A;color:#F4ECD9;font-size:22px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.22);opacity:0;pointer-events:none;transition:opacity .2s';
   document.body.appendChild(topBtn);
   topBtn.onclick = function () { window.scrollTo({ top: 0, behavior: 'smooth' }); };
   window.addEventListener('scroll', function () {

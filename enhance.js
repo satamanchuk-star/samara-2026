@@ -9,7 +9,10 @@
   var css = document.createElement('style');
   css.textContent = [
     '.smr-fab{position:fixed;right:14px;bottom:16px;z-index:90;display:flex;flex-direction:column;gap:10px;align-items:flex-end;font-family:Onest,sans-serif}',
-    '.smr-gal{display:flex;align-items:center;gap:8px;background:#C8841E;color:#fff;text-decoration:none;border-radius:999px;padding:12px 18px;box-shadow:0 6px 18px rgba(0,0,0,.22);font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.04em;font-size:14px}',
+    '.smr-links{display:none;flex-direction:column;gap:8px;align-items:flex-end}',
+    '.smr-links.open{display:flex}',
+    '.smr-lnk{display:flex;align-items:center;gap:8px;background:#fff;color:#235D5A;text-decoration:none;border:1px solid #D8C7A6;border-radius:999px;padding:10px 16px;box-shadow:0 6px 18px rgba(0,0,0,.18);font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.04em;font-size:13px}',
+    '.smr-menu{display:flex;align-items:center;gap:8px;background:#C8841E;color:#fff;border:none;cursor:pointer;border-radius:999px;padding:12px 18px;box-shadow:0 6px 18px rgba(0,0,0,.22);font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.04em;font-size:14px}',
     '.smr-wbtn{display:flex;align-items:center;gap:8px;background:#235D5A;color:#F4ECD9;border:none;cursor:pointer;border-radius:999px;padding:10px 15px;box-shadow:0 6px 18px rgba(0,0,0,.22);font-family:Oswald,sans-serif;letter-spacing:.03em;font-size:14px}',
     '.smr-wbtn .t{font-size:18px;font-weight:700}',
     '.smr-panel{position:fixed;right:14px;bottom:74px;z-index:91;width:300px;max-width:calc(100vw - 28px);background:#fff;border:1px solid #D8C7A6;border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.28);padding:15px 16px;display:none;font-family:Onest,sans-serif;color:#332A22}',
@@ -36,9 +39,17 @@
   var fab = document.createElement('div');
   fab.className = 'smr-fab';
   fab.innerHTML =
-    '<a class="smr-gal" href="/gallery.html">📸 Галерея</a>' +
+    '<div class="smr-links" id="smrLinks">' +
+      '<a class="smr-lnk" href="/gallery.html">📸 Галерея</a>' +
+      '<a class="smr-lnk" href="/map.html">🗺️ Карта</a>' +
+      '<a class="smr-lnk" href="/crew.html">👥 Экипаж</a>' +
+    '</div>' +
+    '<button class="smr-menu" id="smrMenu">🧭 Разделы</button>' +
     '<button class="smr-wbtn" id="smrW"><span>🌦️</span><span class="t" id="smrWt">…</span><span style="font-size:12px;opacity:.85">Самара</span></button>';
   document.body.appendChild(fab);
+  document.getElementById('smrMenu').onclick = function () {
+    document.getElementById('smrLinks').classList.toggle('open');
+  };
 
   var panel = document.createElement('div');
   panel.className = 'smr-panel';

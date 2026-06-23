@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#235D5A">
+<title>Карта маршрута · SMR-26</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#F4ECD9;color:#332A22;font-family:'Onest',sans-serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 16px}
+  header{position:sticky;top:0;z-index:1100;background:rgba(244,236,217,.92);backdrop-filter:blur(8px);border-bottom:1px solid #D8C7A6}
+  .hbar{display:flex;align-items:center;gap:12px;padding:11px 0}
+  .back{flex:none;text-decoration:none;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:13px;color:#235D5A;border:1px solid #235D5A;border-radius:999px;padding:6px 13px}
+  .htitle{font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;font-size:18px;color:#235D5A}
+  .hero{padding:22px 0 4px}
+  .kicker{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#C8841E}
+  h1{font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;font-size:32px;margin:6px 0 6px;line-height:1}
+  .sub{font-size:14px;color:#7a6a52;font-style:italic;margin:0 0 16px}
+  #map{height:62vh;min-height:380px;border-radius:16px;border:1px solid #D8C7A6;overflow:hidden;box-shadow:0 6px 22px rgba(0,0,0,.08)}
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px}
+  .lg{display:flex;align-items:center;gap:6px;font-size:12px;color:#5a4b3a;background:#fff;border:1px solid #D8C7A6;border-radius:999px;padding:4px 10px}
+  .dot{width:11px;height:11px;border-radius:50%}
+  .pin{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50% 50% 50% 2px;transform:rotate(45deg);box-shadow:0 2px 5px rgba(0,0,0,.3);border:2px solid #fff}
+  .pin span{transform:rotate(-45deg);font-size:15px}
+  .lp-title{font-family:'Oswald',sans-serif;font-weight:600;font-size:14px;margin:0 0 2px}
+  .lp-sub{font-size:12px;color:#5a4b3a;line-height:1.4;margin:0 0 7px}
+  .lp-link{font-size:12px;color:#235D5A;text-decoration:none;border:1px solid #235D5A;border-radius:999px;padding:3px 9px;display:inline-block}
+  .list{margin:18px 0 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+  .pl{background:#fff;border:1px solid #D8C7A6;border-radius:12px;padding:11px 13px;cursor:pointer}
+  .pl .t{font-weight:600;font-size:14px}.pl .s{font-size:12.5px;color:#7a6a52;margin-top:2px;line-height:1.4}
+  .pl .b{display:inline-block;font-size:10px;font-family:'Oswald',sans-serif;letter-spacing:.05em;color:#fff;padding:2px 8px;border-radius:999px;margin-top:7px}
+  footer{padding:26px 0 50px;text-align:center;color:#b3a386;font-size:12px}
+  .leaflet-popup-content{margin:11px 13px}
+</style>
+</head>
+<body>
+<header><div class="wrap hbar">
+  <a class="back" href="/">← На сайт</a>
+  <div class="htitle">🗺️ Карта маршрута</div>
+</div></header>
+
+<div class="wrap">
+  <div class="hero">
+    <div class="kicker">SMR-26 · Самара</div>
+    <h1>Точки на карте</h1>
+    <p class="sub">Отель, причал, бары, история и космос — всё в одном месте. Тапни метку или карточку.</p>
+  </div>
+  <div id="map"></div>
+  <div class="legend" id="legend"></div>
+  <div class="list" id="list"></div>
+</div>
+<footer>SMR-26 · карта маршрута · карты © OpenStreetMap</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const CATS = {
+  base:   {c:'#235D5A', n:'База'},
+  volga:  {c:'#2f6fb0', n:'Волга / космос'},
+  beer:   {c:'#C8841E', n:'Пиво / ужин'},
+  bar:    {c:'#8a4fa0', n:'Бары'},
+  history:{c:'#8a6a3a', n:'История'},
+  fly:    {c:'#6a6a6a', n:'Вылет'},
+};
+const PLACES = [
+  {emoji:'🏨',title:'HolidayHall Samara',sub:'А. Толстого, 99 · отель, SPA, гид',cat:'base',label:'БАЗА',q:'Самара, улица Алексея Толстого, 99',ll:[53.1900853,50.0863196]},
+  {emoji:'🚢',title:'Речной вокзал',sub:'М. Горького, 82 · посадка на теплоход',cat:'volga',label:'ВОЛГА',q:'Самара, улица Максима Горького, 82',ll:[53.1870548,50.0785812]},
+  {emoji:'🚀',title:'Монумент «Союз» / Самара Космическая',sub:'пр. Ленина · та самая ракета, фото',cat:'volga',label:'КОСМОС',q:'Самара монумент ракета Союз',ll:[53.2126093,50.1451787]},
+  {emoji:'🍺',title:'На Дне',sub:'Волжский пр., 4 · первый акт пивного вечера',cat:'beer',label:'ПИВО',q:'Самара, Волжский проспект, 4 На Дне',ll:[53.2010515,50.0978854]},
+  {emoji:'🍺',title:'Кухмистерская фон Вакано',sub:'Красноармейская, 4 · гастропаб «1903» + бар «Юрик»',cat:'beer',label:'УЖИН',q:'Самара, Красноармейская, 4 Кухмистерская фон Вакано',ll:[53.1951117,50.0949191]},
+  {emoji:'🔥',title:'«Заволга» (кухня костра)',sub:'Адрес уточняется · шашлык, бар «Переправа». Финал субботы.',cat:'beer',label:'УЖИН',q:'Самара, Заволга кухня костра',ll:null},
+  {emoji:'🍸',title:'Посольство',sub:'Фрунзе, 113 · коктейли',cat:'bar',label:'БАР',q:'Самара, Фрунзе, 113 Посольство бар',ll:[53.1891773,50.0928701]},
+  {emoji:'🍸',title:'IDOL Tiki Bar',sub:'Молодогвардейская, 66 · тики-коктейли',cat:'bar',label:'БАР',q:'Самара, Молодогвардейская, 66 IDOL Tiki Bar',ll:[53.1854947,50.0950406]},
+  {emoji:'🏛️',title:'Музей модерна',sub:'Особняк Курлиной, Фрунзе, 159 · вс 10–18',cat:'history',label:'ИСТОРИЯ',q:'Самара, Фрунзе, 159 Музей модерна',ll:[53.1942466,50.0963059]},
+  {emoji:'🏛️',title:'Площадь Куйбышева',sub:'Театр оперы, «запасная столица»',cat:'history',label:'ИСТОРИЯ',q:'Самара, площадь Куйбышева',ll:[53.1955255,50.1013794]},
+  {emoji:'🎖️',title:'Бункер Сталина (опция)',sub:'Фрунзе, 167 · график пн–пт',cat:'history',label:'ИСТОРИЯ',q:'Самара, Фрунзе, 167 Бункер Сталина',ll:[53.1964218,50.0988898]},
+  {emoji:'✈️',title:'Аэропорт Курумоч',sub:'KUF · быть не позже 18:00 в вс',cat:'fly',label:'ВЫЛЕТ',q:'Аэропорт Курумоч',ll:[53.5093555,50.1455448]},
+];
+
+const map = L.map('map',{scrollWheelZoom:false}).setView([53.193,50.095],14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom:19, attribution:'© OpenStreetMap'
+}).addTo(map);
+
+const yandex = q => 'https://yandex.ru/maps/?text=' + encodeURIComponent(q);
+const markers = {};
+const downtown = [];
+PLACES.forEach((p,i)=>{
+  if(!p.ll) return;
+  const col = CATS[p.cat].c;
+  const icon = L.divIcon({html:`<div class="pin" style="background:${col}"><span>${p.emoji}</span></div>`,className:'',iconSize:[30,30],iconAnchor:[15,28],popupAnchor:[0,-26]});
+  const m = L.marker(p.ll,{icon}).addTo(map);
+  m.bindPopup(`<div class="lp-title">${p.emoji} ${p.title}</div><div class="lp-sub">${p.sub}</div><a class="lp-link" target="_blank" rel="noopener" href="${yandex(p.q)}">Яндекс.Карты ↗</a>`);
+  markers[i]=m;
+  if(p.cat!=='fly') downtown.push(p.ll);
+});
+map.fitBounds(downtown,{padding:[40,40]});
+
+// легенда
+const lg = document.getElementById('legend');
+Object.values(CATS).forEach(c=>{
+  const d=document.createElement('div');d.className='lg';
+  d.innerHTML=`<span class="dot" style="background:${c.c}"></span>${c.n}`;lg.appendChild(d);
+});
+
+// список
+const list = document.getElementById('list');
+PLACES.forEach((p,i)=>{
+  const col=CATS[p.cat].c;
+  const el=document.createElement('div');el.className='pl';
+  el.innerHTML=`<div class="t">${p.emoji} ${p.title}</div><div class="s">${p.sub}</div><span class="b" style="background:${col}">${p.label}</span>`;
+  el.onclick=()=>{ if(p.ll){map.flyTo(p.ll,16);markers[i].openPopup();window.scrollTo({top:0,behavior:'smooth'});} else {window.open(yandex(p.q),'_blank');} };
+  list.appendChild(el);
+});
+</script>
+</body>
+</html>

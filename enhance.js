@@ -11,6 +11,9 @@
 
   var css = document.createElement('style');
   css.textContent = [
+    // #dc-root задаёт height:100vh с overflow:visible — контент вываливается за бокс,
+    // из-за чего секции, добавленные после него, накладываются. height:auto чинит поток.
+    '#dc-root{height:auto!important}',
     '.smr-fab{position:fixed;right:14px;bottom:16px;z-index:90;display:flex;flex-direction:column;gap:10px;align-items:flex-end;font-family:Onest,sans-serif}',
     '.smr-links{display:none;flex-direction:column;gap:8px;align-items:flex-end}',
     '.smr-links.open{display:flex}',
@@ -96,6 +99,39 @@
     topBtn.style.opacity = on ? '1' : '0';
     topBtn.style.pointerEvents = on ? 'auto' : 'none';
   }, { passive: true });
+
+  // ===== Мерч и сувениры (секция внизу страницы) =====
+  var merch = document.createElement('section');
+  merch.id = 'smr-merch';
+  merch.style.cssText = 'max-width:760px;margin:0 auto;padding:30px 20px 44px;font-family:Onest,sans-serif';
+  merch.innerHTML =
+    '<div style="font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#235D5A">08 · Память о поездке</div>' +
+    '<h2 style="font-family:Oswald,sans-serif;font-weight:700;text-transform:uppercase;font-size:30px;margin:6px 0 5px;line-height:1;color:#332A22">Мерч и сувениры 👕</h2>' +
+    '<p style="margin:0 0 16px;font-size:13.5px;color:#675a44;font-style:italic">Фирменный «ЗОЖ ТУР» — футболка и худи экипажа. Чтобы было в чём вспоминать поездку.</p>' +
+    '<div id="smrMerchGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px"></div>';
+  var mgrid = merch.querySelector('#smrMerchGrid');
+  var merchItems = [
+    { src: '/merch/merch-tshirt.jpg', t: 'Футболка «ЗОЖ ТУР»', s: 'оверсайз, молочный' },
+    { src: '/merch/merch-hoodie.jpg', t: 'Худи «ЗОЖ ТУР»', s: 'графитовый' }
+  ];
+  merchItems.forEach(function (it) {
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#fff;border:1px solid #D8C7A6;border-radius:14px;overflow:hidden';
+    var img = document.createElement('img');
+    img.src = it.src; img.loading = 'lazy'; img.alt = it.t;
+    img.style.cssText = 'display:block;width:100%;height:auto;background:#eadfc6';
+    img.onerror = function () { card.style.display = 'none'; merchCheck(); };
+    var cap = document.createElement('div');
+    cap.style.cssText = 'padding:11px 13px';
+    cap.innerHTML = '<div style="font-weight:600;font-size:14.5px">' + it.t + '</div>' +
+      '<div style="font-size:12.5px;color:#675a44;margin-top:2px">' + it.s + '</div>';
+    card.appendChild(img); card.appendChild(cap); mgrid.appendChild(card);
+  });
+  function merchCheck() {
+    var all = [].slice.call(mgrid.children);
+    if (all.length && all.every(function (c) { return c.style.display === 'none'; })) merch.style.display = 'none';
+  }
+  document.body.appendChild(merch);
 
   var WMO = {
     0:['☀️','ясно'],1:['🌤️','малооблачно'],2:['⛅','облачно'],3:['☁️','пасмурно'],

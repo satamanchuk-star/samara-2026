@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#235D5A">
+<title>Галерея экипажа · SMR-26</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#F4ECD9;color:#332A22;font-family:'Onest',sans-serif;-webkit-text-size-adjust:100%}
+  a{color:inherit}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 16px}
+  header{position:sticky;top:0;z-index:20;background:rgba(244,236,217,.92);backdrop-filter:blur(8px);border-bottom:1px solid #D8C7A6}
+  .hbar{display:flex;align-items:center;gap:12px;padding:11px 0}
+  .back{flex:none;text-decoration:none;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:13px;color:#235D5A;border:1px solid #235D5A;border-radius:999px;padding:6px 13px}
+  .htitle{font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.02em;font-size:18px;color:#235D5A;line-height:1}
+  .hero{padding:26px 0 6px}
+  .kicker{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#C8841E}
+  h1{font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;font-size:34px;margin:6px 0 6px;line-height:1}
+  .sub{font-size:14px;color:#7a6a52;font-style:italic;margin:0 0 18px}
+
+  .panel{background:#fff;border:1px solid #D8C7A6;border-radius:14px;padding:16px;margin-bottom:22px}
+  .panel h2{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.04em;font-size:16px;color:#235D5A;margin:0 0 12px}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .field{flex:1;min-width:160px;display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+  label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#9a8a6a;font-family:'Oswald',sans-serif}
+  input[type=text],input[type=password]{background:#faf6ec;border:1px solid #D8C7A6;border-radius:10px;padding:11px 12px;font-size:15px;font-family:'Onest',sans-serif;color:#332A22;outline:none;width:100%}
+  input:focus{border-color:#235D5A}
+  .drop{border:2px dashed #C8841E;border-radius:12px;background:#fdf6e6;padding:20px;text-align:center;cursor:pointer;transition:.15s}
+  .drop:hover,.drop.over{background:#fbecd0;border-color:#9a6a1e}
+  .drop .big{font-size:30px}
+  .drop .t1{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.04em;font-size:15px;color:#9a6a1e;margin-top:6px}
+  .drop .t2{font-size:12.5px;color:#9a8a6a;margin-top:3px}
+  .btn{background:#C8841E;color:#fff;border:none;border-radius:10px;padding:12px 20px;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:15px;cursor:pointer;width:100%}
+  .btn:disabled{opacity:.5;cursor:default}
+  .hint{font-size:12px;color:#9a8a6a;margin-top:8px;line-height:1.5}
+  .msg{margin-top:10px;font-size:13.5px;border-radius:10px;padding:10px 12px;display:none}
+  .msg.ok{display:block;background:#e7f3ec;color:#1F8A5B;border:1px solid #bfe3cd}
+  .msg.err{display:block;background:#fbe9e7;color:#b23b2e;border:1px solid #f0c3bc}
+  .queue{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+  .qitem{font-size:12.5px;color:#5a4b3a;display:flex;justify-content:space-between;gap:8px;background:#faf6ec;border:1px solid #eadfc6;border-radius:8px;padding:6px 10px}
+
+  .count{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.06em;font-size:13px;color:#7a6a52;margin:0 0 12px}
+  .grid{columns:4 230px;column-gap:12px}
+  .card{break-inside:avoid;margin:0 0 12px;background:#fff;border:1px solid #D8C7A6;border-radius:12px;overflow:hidden;cursor:pointer;position:relative}
+  .card img,.card video{display:block;width:100%;height:auto;background:#eadfc6}
+  .card .vbadge{position:absolute;top:8px;right:8px;background:rgba(35,93,90,.9);color:#fff;font-size:11px;font-family:'Oswald',sans-serif;letter-spacing:.05em;padding:3px 8px;border-radius:999px}
+  .meta{padding:9px 11px}
+  .meta .who{font-weight:600;font-size:13px}
+  .meta .cap{font-size:12.5px;color:#7a6a52;margin-top:2px;line-height:1.4}
+  .meta .when{font-size:11px;color:#b3a386;margin-top:4px;font-family:'Oswald',sans-serif;letter-spacing:.04em}
+  .empty{text-align:center;color:#9a8a6a;padding:40px 20px;background:#fff;border:1px dashed #D8C7A6;border-radius:14px}
+  .empty .big{font-size:40px}
+
+  /* lightbox */
+  .lb{position:fixed;inset:0;background:rgba(20,16,10,.92);z-index:100;display:none;align-items:center;justify-content:center;padding:18px}
+  .lb.on{display:flex}
+  .lb img,.lb video{max-width:100%;max-height:82vh;border-radius:8px}
+  .lb .lcap{position:absolute;left:0;right:0;bottom:14px;text-align:center;color:#F4ECD9;font-size:14px;padding:0 20px}
+  .lb .lclose{position:absolute;top:14px;right:16px;color:#fff;background:rgba(255,255,255,.15);border:none;border-radius:999px;width:42px;height:42px;font-size:22px;cursor:pointer}
+  .lb .lnav{position:absolute;top:50%;transform:translateY(-50%);color:#fff;background:rgba(255,255,255,.13);border:none;border-radius:999px;width:46px;height:46px;font-size:24px;cursor:pointer}
+  .lb .lprev{left:12px}.lb .lnext{right:12px}
+  footer{padding:30px 0 50px;text-align:center;color:#b3a386;font-size:12px}
+  @media(max-width:520px){h1{font-size:28px}.grid{columns:2 150px;column-gap:9px}.card{margin-bottom:9px}}
+</style>
+</head>
+<body>
+<header><div class="wrap hbar">
+  <a class="back" href="/">← На сайт</a>
+  <div class="htitle">📸 Галерея экипажа</div>
+</div></header>
+
+<div class="wrap">
+  <div class="hero">
+    <div class="kicker">SMR-26 · Volga Weekend</div>
+    <h1>Общий фотоальбом</h1>
+    <p class="sub">Загружай фото и видео с поездки — их увидит весь экипаж. Новое появляется сверху.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Загрузить момент</h2>
+    <input id="file" type="file" accept="image/*,video/*" multiple hidden>
+    <div class="drop" id="drop">
+      <div class="big">📤</div>
+      <div class="t1">Выбрать фото / видео</div>
+      <div class="t2">или перетащи сюда · можно несколько сразу · до 200 МБ</div>
+    </div>
+    <div class="queue" id="queue"></div>
+    <div class="row" style="margin-top:12px">
+      <div class="field"><label>Кто загружает</label><input id="author" type="text" placeholder="Имя" maxlength="40"></div>
+      <div class="field"><label>Кодовое слово</label><input id="pw" type="password" placeholder="для загрузки" maxlength="60"></div>
+    </div>
+    <div class="field"><label>Подпись (необязательно)</label><input id="caption" type="text" placeholder="«Вобла на набережной»…" maxlength="200"></div>
+    <button class="btn" id="send" disabled>Загрузить</button>
+    <div class="hint">Кодовое слово на загрузку — у организатора. Просмотр галереи открыт всем.</div>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="count" id="count">Загружаю галерею…</div>
+  <div class="grid" id="grid"></div>
+  <div id="emptyBox"></div>
+</div>
+
+<div class="lb" id="lb">
+  <button class="lclose" id="lclose">✕</button>
+  <button class="lnav lprev" id="lprev">‹</button>
+  <button class="lnav lnext" id="lnext">›</button>
+  <div id="lbody"></div>
+  <div class="lcap" id="lcap"></div>
+</div>
+
+<footer>SMR-26 · фотоальбом экипажа · 03–05 июля 2026</footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const fileInput=$('#file'), drop=$('#drop'), queue=$('#queue'), send=$('#send'), msg=$('#msg');
+let chosen=[];
+
+// запоминаем имя и пароль
+$('#author').value = localStorage.getItem('smr_author')||'';
+$('#pw').value     = localStorage.getItem('smr_pw')||'';
+
+drop.onclick=()=>fileInput.click();
+['dragover','dragenter'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',ev=>{addFiles(ev.dataTransfer.files)});
+fileInput.onchange=()=>addFiles(fileInput.files);
+
+function addFiles(list){
+  for(const f of list){ if(f.type.startsWith('image/')||f.type.startsWith('video/')) chosen.push(f); }
+  renderQueue();
+}
+function fmtSize(b){return b>1048576?(b/1048576).toFixed(1)+' МБ':(b/1024).toFixed(0)+' КБ';}
+function renderQueue(){
+  queue.innerHTML='';
+  chosen.forEach((f,i)=>{
+    const d=document.createElement('div');d.className='qitem';
+    d.innerHTML=`<span>${f.type.startsWith('video')?'🎥':'📷'} ${f.name}</span><span>${fmtSize(f.size)} <a href="#" data-i="${i}" style="color:#b23b2e;text-decoration:none">✕</a></span>`;
+    queue.appendChild(d);
+  });
+  queue.querySelectorAll('a[data-i]').forEach(a=>a.onclick=e=>{e.preventDefault();chosen.splice(+a.dataset.i,1);renderQueue();});
+  send.disabled = chosen.length===0;
+  send.textContent = chosen.length? `Загрузить (${chosen.length})` : 'Загрузить';
+}
+
+send.onclick=async()=>{
+  const pw=$('#pw').value.trim(), author=$('#author').value.trim();
+  if(!pw){showMsg('Введи кодовое слово для загрузки.','err');return;}
+  if(!chosen.length)return;
+  localStorage.setItem('smr_author',author);
+  localStorage.setItem('smr_pw',pw);
+  const fd=new FormData();
+  fd.append('pw',pw); fd.append('author',author); fd.append('caption',$('#caption').value);
+  chosen.forEach(f=>fd.append('files[]',f));
+  send.disabled=true; send.textContent='Загружаю…'; showMsg('','');
+  try{
+    const r=await fetch('/api/upload.php',{method:'POST',body:fd});
+    const j=await r.json();
+    if(!j.ok){showMsg(j.error||'Не удалось загрузить','err');send.disabled=false;renderQueue();return;}
+    showMsg('Готово! Загружено: '+j.added+'. Спасибо 🙌','ok');
+    chosen=[]; fileInput.value=''; $('#caption').value=''; renderQueue();
+    load();
+  }catch(e){showMsg('Ошибка сети при загрузке','err');send.disabled=false;}
+};
+function showMsg(t,cls){msg.className='msg '+(cls||'');msg.textContent=t;}
+
+// ===== галерея =====
+let items=[];
+function timeAgo(ts){
+  const s=Math.floor(Date.now()/1000)-ts;
+  if(s<60)return 'только что'; if(s<3600)return Math.floor(s/60)+' мин назад';
+  if(s<86400)return Math.floor(s/3600)+' ч назад';
+  const d=new Date(ts*1000);return d.toLocaleDateString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+}
+async function load(){
+  try{
+    const r=await fetch('/api/list.php?t='+Date.now());
+    const j=await r.json(); items=j.items||[];
+  }catch(e){items=[];}
+  render();
+}
+function render(){
+  const grid=$('#grid'), empty=$('#emptyBox'), count=$('#count');
+  grid.innerHTML=''; empty.innerHTML='';
+  if(!items.length){
+    count.textContent='';
+    empty.innerHTML='<div class="empty"><div class="big">🌅</div><div style="font-family:Oswald;text-transform:uppercase;letter-spacing:.05em;margin-top:8px;color:#7a6a52">Пока пусто</div><div style="margin-top:5px">Будь первым — загрузи фото или видео с поездки.</div></div>';
+    return;
+  }
+  count.textContent='Всего моментов: '+items.length;
+  items.forEach((it,idx)=>{
+    const c=document.createElement('div');c.className='card';
+    const src='/uploads/'+it.file;
+    const media = it.type==='video'
+      ? `<video src="${src}#t=0.1" preload="metadata" muted playsinline></video><span class="vbadge">🎥 видео</span>`
+      : `<img src="${src}" loading="lazy" alt="">`;
+    const cap = it.caption? `<div class="cap">${esc(it.caption)}</div>`:'';
+    c.innerHTML=`${media}<div class="meta"><div class="who">${esc(it.author||'Аноним')}</div>${cap}<div class="when">${timeAgo(it.ts)}</div></div>`;
+    c.onclick=()=>openLb(idx);
+    grid.appendChild(c);
+  });
+}
+function esc(s){return (s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+
+// ===== lightbox =====
+let cur=0;
+const lb=$('#lb'), lbody=$('#lbody'), lcap=$('#lcap');
+function openLb(i){cur=i;showLb();lb.classList.add('on');document.body.style.overflow='hidden';}
+function closeLb(){lb.classList.remove('on');lbody.innerHTML='';document.body.style.overflow='';}
+function showLb(){
+  const it=items[cur];const src='/uploads/'+it.file;
+  lbody.innerHTML = it.type==='video'
+    ? `<video src="${src}" controls autoplay playsinline></video>`
+    : `<img src="${src}" alt="">`;
+  lcap.textContent=(it.author?it.author+' · ':'')+(it.caption||'');
+}
+$('#lclose').onclick=closeLb;
+$('#lprev').onclick=()=>{cur=(cur-1+items.length)%items.length;showLb();};
+$('#lnext').onclick=()=>{cur=(cur+1)%items.length;showLb();};
+lb.addEventListener('click',e=>{if(e.target===lb)closeLb();});
+document.addEventListener('keydown',e=>{if(!lb.classList.contains('on'))return;if(e.key==='Escape')closeLb();if(e.key==='ArrowLeft')$('#lprev').click();if(e.key==='ArrowRight')$('#lnext').click();});
+
+renderQueue(); load();
+setInterval(load, 30000); // автообновление каждые 30 c
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+# Запрет листинга
+Options -Indexes
+
+# Никаких исполняемых скриптов в папке загрузок
+<FilesMatch "\.(?i:php|php\d|phtml|pht|phar|cgi|pl|py|sh|asp|aspx)$">
+  Require all denied
+</FilesMatch>
+SetHandler none
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .phar
+
+# Скрыть метаданные и точкофайлы
+<FilesMatch "^[._]">
+  Require all denied
+</FilesMatch>

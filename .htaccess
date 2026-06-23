@@ -1,0 +1,7 @@
+# MIME-типы для PWA
+AddType application/manifest+json .webmanifest
+<IfModule mod_headers.c>
+  <FilesMatch "\.webmanifest$">
+    Header set Cache-Control "public, max-age=3600"
+  </FilesMatch>
+</IfModule>

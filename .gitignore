@@ -1,3 +1,7 @@
+# секреты — реальный конфиг с паролем только на сервере
+api/config.php
+
+# загруженные медиа
 uploads/*
 !uploads/.htaccess
 !uploads/_meta.json

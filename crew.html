@@ -41,6 +41,7 @@
   .member .av{font-size:38px;line-height:1}
   .member .nm{font-weight:700;font-size:15px;margin-top:8px}
   .member .nt{font-size:12.5px;color:#675a44;margin-top:3px;line-height:1.4}
+  .member .ct{display:inline-block;margin-top:9px;font-size:12.5px;text-decoration:none;color:#235D5A;border:1px solid #235D5A;border-radius:999px;padding:4px 12px}
   .empty{text-align:center;color:#6b5c44;padding:36px 20px;background:#fff;border:1px dashed #D8C7A6;border-radius:14px}
   footer{padding:30px 0 50px;text-align:center;color:#8a7a5f;font-size:12px}
   @media(max-width:520px){h1{font-size:28px}}
@@ -64,6 +65,7 @@
     <div class="field"><label>Имя</label><input id="name" type="text" placeholder="Как тебя зовут" maxlength="40"></div>
     <div class="field"><label>Аватар</label><div class="emojis" id="emojis"></div></div>
     <div class="field"><label>Пара слов (необязательно)</label><input id="note" type="text" placeholder="«за рулём катера», «отвечаю за пиво»…" maxlength="80"></div>
+    <div class="field"><label>Телефон / Telegram (для связи в поездке)</label><input id="contact" type="text" placeholder="+7… или @username" maxlength="60"></div>
     <button class="btn" id="join">Добавить себя в экипаж</button>
     <div class="msg" id="msg"></div>
   </div>
@@ -81,12 +83,14 @@ let pickedEmoji=localStorage.getItem('crew_emoji')||'🧑';
 const ebox=$('#emojis');
 EMO.forEach(e=>{const d=document.createElement('div');d.className='em'+(e===pickedEmoji?' on':'');d.textContent=e;d.onclick=()=>{pickedEmoji=e;localStorage.setItem('crew_emoji',e);[...ebox.children].forEach(c=>c.classList.toggle('on',c.textContent===e));};ebox.appendChild(d);});
 $('#name').value=localStorage.getItem('crew_name')||'';
+$('#contact').value=localStorage.getItem('crew_contact')||'';
 
 $('#join').onclick=async()=>{
   const name=$('#name').value.trim();
   if(!name){showMsg('Введи имя.','err');return;}
   localStorage.setItem('crew_name',name);
-  const fd=new FormData();fd.append('action','add');fd.append('name',name);fd.append('emoji',pickedEmoji);fd.append('note',$('#note').value);
+  localStorage.setItem('crew_contact',$('#contact').value.trim());
+  const fd=new FormData();fd.append('action','add');fd.append('name',name);fd.append('emoji',pickedEmoji);fd.append('note',$('#note').value);fd.append('contact',$('#contact').value);
   $('#join').disabled=true;
   try{
     const r=await fetch('/api/crew.php',{method:'POST',body:fd});const j=await r.json();
@@ -97,6 +101,12 @@ $('#join').onclick=async()=>{
 function showMsg(t,c){const m=$('#msg');m.className='msg '+c;m.textContent=t;}
 
 function esc(s){return (s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+function contactLink(c){
+  c=(c||'').trim(); if(!c) return '';
+  if(/^@[\w\d_]+$/.test(c)) return `<a class="ct" href="https://t.me/${esc(c.slice(1))}" target="_blank" rel="noopener">✈️ ${esc(c)}</a>`;
+  if(/^\+?[\d][\d\s()-]{4,}$/.test(c)) return `<a class="ct" href="tel:${esc(c.replace(/[\s()-]/g,''))}">📞 позвонить</a>`;
+  return `<div class="ct" style="background:none;border:none;color:#675a44">${esc(c)}</div>`;
+}
 function render(items){
   const grid=$('#grid'),empty=$('#emptyBox'),count=$('#count');
   grid.innerHTML='';empty.innerHTML='';
@@ -104,7 +114,7 @@ function render(items){
   count.textContent='В экипаже: '+items.length;
   items.forEach(m=>{
     const d=document.createElement('div');d.className='member';
-    d.innerHTML=`<div class="av">${esc(m.emoji||'🧑')}</div><div class="nm">${esc(m.name)}</div>${m.note?`<div class="nt">${esc(m.note)}</div>`:''}`;
+    d.innerHTML=`<div class="av">${esc(m.emoji||'🧑')}</div><div class="nm">${esc(m.name)}</div>${m.note?`<div class="nt">${esc(m.note)}</div>`:''}${contactLink(m.contact)}`;
     grid.appendChild(d);
   });
 }

@@ -1,6 +1,6 @@
 /* SMR-26 service worker — network-first, чтобы контент был свежим, с офлайн-фолбэком из кэша. */
-var CACHE = 'smr26-v8';
-var SHELL = ['/', '/index.html', '/gallery.html', '/map.html', '/crew.html', '/enhance.js?v=8',
+var CACHE = 'smr26-v9';
+var SHELL = ['/', '/index.html', '/gallery.html', '/map.html', '/crew.html', '/enhance.js?v=9',
   '/vendor/react.production.min.js', '/vendor/react-dom.production.min.js',
   '/vendor/leaflet/leaflet.js', '/vendor/leaflet/leaflet.css', '/manifest.webmanifest',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-180.png'];

@@ -97,12 +97,51 @@
     topBtn.style.pointerEvents = on ? 'auto' : 'none';
   }, { passive: true });
 
+  // ===== Тайминги рейса + В календарь =====
+  function tline(em, t, s) {
+    return '<div style="display:flex;gap:10px;align-items:center;background:#fff;border:1px solid #D8C7A6;border-radius:12px;padding:11px 13px">' +
+      '<span style="font-size:20px">' + em + '</span><div><div style="font-weight:600;font-size:14px">' + t +
+      '</div><div style="font-size:12.5px;color:#675a44">' + s + '</div></div></div>';
+  }
+  function icsDownload() {
+    function ev(uid, s, e, sum, loc, desc) {
+      return ['BEGIN:VEVENT', 'UID:' + uid + '@smr26.ru', 'DTSTAMP:20260623T000000Z',
+        'DTSTART:' + s, 'DTEND:' + e, 'SUMMARY:' + sum, 'LOCATION:' + loc, 'DESCRIPTION:' + desc,
+        'BEGIN:VALARM', 'TRIGGER:-PT3H', 'ACTION:DISPLAY', 'DESCRIPTION:' + sum, 'END:VALARM', 'END:VEVENT'].join('\r\n');
+    }
+    var cal = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//SMR-26//RU', 'CALSCALE:GREGORIAN',
+      ev('smr-out', '20260703T211500', '20260704T001000', 'SMR-26 — вылет в Самару', 'Аэропорт Домодедово (DME)', 'Москва (DME) → Самара. Посадка 00:10 в Курумоче.'),
+      ev('smr-back', '20260705T180000', '20260705T193000', 'SMR-26 — обратный рейс', 'Аэропорт Курумоч (KUF)', 'Быть в аэропорту не позже 18:00.'),
+      'END:VCALENDAR'].join('\r\n');
+    var blob = new Blob([cal], { type: 'text/calendar;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'SMR-26.ics';
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  }
+  var timings = document.createElement('section');
+  timings.id = 'smr-timings';
+  timings.style.cssText = 'max-width:760px;margin:0 auto;padding:30px 20px 8px;font-family:Onest,sans-serif';
+  timings.innerHTML =
+    '<div style="font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#235D5A">08 · В дорогу</div>' +
+    '<h2 style="font-family:Oswald,sans-serif;font-weight:700;text-transform:uppercase;font-size:30px;margin:6px 0 5px;line-height:1;color:#332A22">Тайминги рейса ✈️</h2>' +
+    '<p style="margin:0 0 14px;font-size:13.5px;color:#675a44;font-style:italic">Добавь ключевые времена в календарь телефона — за 3 часа придёт напоминание.</p>' +
+    '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">' +
+      tline('✈️', 'Вылет из Москвы', '3 июля · 21:15 · Домодедово (DME)') +
+      tline('🛬', 'Посадка в Самаре', '4 июля · 00:10 · Курумоч (KUF)') +
+      tline('🏨', 'Отель HolidayHall', 'с ночи 3 июля') +
+      tline('🛫', 'Обратный рейс', '5 июля · в Курумоче к 18:00') +
+    '</div>' +
+    '<button id="smrIcs" style="background:#A86511;color:#fff;border:none;border-radius:12px;padding:13px 20px;font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:15px;cursor:pointer;width:100%">📅 Добавить рейсы в календарь</button>';
+  document.body.appendChild(timings);
+  document.getElementById('smrIcs').onclick = icsDownload;
+
   // ===== Мерч и сувениры (секция внизу страницы) =====
   var merch = document.createElement('section');
   merch.id = 'smr-merch';
   merch.style.cssText = 'max-width:760px;margin:0 auto;padding:30px 20px 44px;font-family:Onest,sans-serif';
   merch.innerHTML =
-    '<div style="font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#235D5A">08 · Память о поездке</div>' +
+    '<div style="font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#235D5A">09 · Память о поездке</div>' +
     '<h2 style="font-family:Oswald,sans-serif;font-weight:700;text-transform:uppercase;font-size:30px;margin:6px 0 5px;line-height:1;color:#332A22">Мерч и сувениры 👕</h2>' +
     '<p style="margin:0 0 16px;font-size:13.5px;color:#675a44;font-style:italic">Фирменный «ЗОЖ ТУР» — футболка и худи экипажа. Чтобы было в чём вспоминать поездку.</p>' +
     '<div id="smrMerchGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px"></div>';

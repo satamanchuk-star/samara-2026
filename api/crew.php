@@ -20,19 +20,21 @@ if ($action === 'add') {
   if ($name === '') json_out(['ok'=>false,'error'=>'Введи имя'],400);
   $emoji = clean_str($_POST['emoji'] ?? '', 8);
   $note  = clean_str($_POST['note'] ?? '', 80);
+  $contact = clean_str($_POST['contact'] ?? '', 60);
   $crew = crew_read($CREW);
   // обновляем существующего по имени, не плодим дубли
   foreach ($crew as &$c) {
     if (mb_strtolower($c['name']) === mb_strtolower($name)) {
       if ($emoji) $c['emoji']=$emoji;
       if ($note)  $c['note']=$note;
+      $c['contact']=$contact;
       crew_write($CREW,$crew);
       json_out(['ok'=>true,'items'=>$crew,'updated'=>true]);
     }
   }
   unset($c);
   if (count($crew) >= 60) json_out(['ok'=>false,'error'=>'Список переполнен'],400);
-  $crew[] = ['id'=>bin2hex(random_bytes(4)),'name'=>$name,'emoji'=>$emoji?:'🧑','note'=>$note,'ts'=>time()];
+  $crew[] = ['id'=>bin2hex(random_bytes(4)),'name'=>$name,'emoji'=>$emoji?:'🧑','note'=>$note,'contact'=>$contact,'ts'=>time()];
   crew_write($CREW,$crew);
   json_out(['ok'=>true,'items'=>$crew]);
 }

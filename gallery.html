@@ -54,6 +54,11 @@
   .card .delBtn:hover{background:rgba(178,59,46,.92)}
   .lb-del{position:absolute;top:14px;left:16px;display:flex;align-items:center;gap:6px;color:#fff;background:rgba(255,255,255,.15);border:none;border-radius:999px;height:42px;padding:0 16px;font-size:14px;cursor:pointer;font-family:'Onest',sans-serif}
   .lb-del:hover{background:rgba(178,59,46,.92)}
+  .likeBtn{display:inline-flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;font-size:13px;color:#8a7a5f;font-family:'Onest',sans-serif;padding:6px 0 2px;margin-top:1px}
+  .likeBtn.on{color:#d6483b;font-weight:600}
+  .card .topBadge{position:absolute;top:8px;right:8px;background:#C8841E;color:#fff;font-size:10px;font-family:'Oswald',sans-serif;letter-spacing:.04em;padding:3px 8px;border-radius:999px}
+  .lb-like{position:absolute;top:14px;right:70px;color:#fff;background:rgba(255,255,255,.15);border:none;border-radius:999px;height:42px;padding:0 15px;font-size:15px;cursor:pointer;font-family:'Onest',sans-serif}
+  .lb-like.on{background:rgba(214,72,59,.85)}
   .meta{padding:9px 11px}
   .meta .who{font-weight:600;font-size:13px}
   .meta .cap{font-size:12.5px;color:#675a44;margin-top:2px;line-height:1.4}
@@ -112,6 +117,7 @@
 
 <div class="lb" id="lb">
   <button class="lb-del" id="lbDel">🗑 Удалить</button>
+  <button class="lb-like" id="lbLike">🤍 0</button>
   <button class="lclose" id="lclose">✕</button>
   <button class="lnav lprev" id="lprev">‹</button>
   <button class="lnav lnext" id="lnext">›</button>
@@ -191,6 +197,8 @@ function showMsg(t,cls){msg.className='msg '+(cls||'');msg.textContent=t;}
 
 // ===== галерея =====
 let items=[];
+const LIKED=new Set(JSON.parse(localStorage.getItem('smr_liked')||'[]'));
+function saveLiked(){localStorage.setItem('smr_liked',JSON.stringify([...LIKED]));}
 function timeAgo(ts){
   const s=Math.floor(Date.now()/1000)-ts;
   if(s<60)return 'только что'; if(s<3600)return Math.floor(s/60)+' мин назад';
@@ -213,6 +221,9 @@ function render(){
     return;
   }
   count.textContent='Всего моментов: '+items.length;
+  // фото дня — с максимумом лайков (>0)
+  const topItem=items.reduce((a,b)=>((b.likes||0)>(a.likes||0)?b:a),{likes:0});
+  const topFile=(topItem.likes||0)>0?topItem.file:null;
   items.forEach((it,idx)=>{
     const c=document.createElement('div');c.className='card';
     const src='/uploads/'+it.file;
@@ -220,13 +231,38 @@ function render(){
       ? `<video src="${src}#t=0.1" preload="metadata" muted playsinline></video><span class="vbadge">🎥 видео</span>`
       : `<img src="${src}" loading="lazy" alt="">`;
     const cap = it.caption? `<div class="cap">${esc(it.caption)}</div>`:'';
-    c.innerHTML=`${media}<button class="delBtn" title="Удалить">🗑</button><div class="meta"><div class="who">${esc(it.author||'Аноним')}</div>${cap}<div class="when">${timeAgo(it.ts)}</div></div>`;
+    const crown = it.file===topFile ? `<span class="topBadge">🏆 фото дня</span>` : '';
+    const liked = LIKED.has(it.file);
+    c.innerHTML=`${media}<button class="delBtn" title="Удалить">🗑</button>${crown}<div class="meta"><div class="who">${esc(it.author||'Аноним')}</div>${cap}<div class="when">${timeAgo(it.ts)}</div><button class="likeBtn ${liked?'on':''}" data-file="${it.file}" title="Нравится">${liked?'❤':'🤍'} <span>${it.likes||0}</span></button></div>`;
     c.onclick=()=>openLb(idx);
     c.querySelector('.delBtn').onclick=(e)=>{e.stopPropagation();deleteItem(it.file);};
+    c.querySelector('.likeBtn').onclick=(e)=>{e.stopPropagation();toggleLike(it.file);};
     grid.appendChild(c);
   });
 }
 function esc(s){return (s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+
+// ===== лайки (память устройства) =====
+function updateGridLike(file){
+  const sel=(window.CSS&&CSS.escape)?CSS.escape(file):file;
+  const btn=document.querySelector('.likeBtn[data-file="'+sel+'"]');
+  if(!btn)return; const it=items.find(i=>i.file===file); const liked=LIKED.has(file);
+  btn.className='likeBtn '+(liked?'on':''); btn.innerHTML=(liked?'❤':'🤍')+' <span>'+(it?it.likes||0:0)+'</span>';
+}
+function syncLbLike(){
+  const b=$('#lbLike'); if(!b)return; const it=items[cur]; if(!it)return; const liked=LIKED.has(it.file);
+  b.className='lb-like '+(liked?'on':''); b.innerHTML=(liked?'❤':'🤍')+' '+(it.likes||0);
+}
+async function toggleLike(file){
+  const liked=LIKED.has(file); const dir=liked?'down':'up';
+  if(liked)LIKED.delete(file); else LIKED.add(file); saveLiked();
+  const it=items.find(i=>i.file===file); if(it)it.likes=Math.max(0,(it.likes||0)+(liked?-1:1));
+  updateGridLike(file); syncLbLike();
+  try{const fd=new FormData();fd.append('file',file);fd.append('dir',dir);
+    const r=await fetch('/api/like.php',{method:'POST',body:fd}); const j=await r.json();
+    if(j.ok&&it){it.likes=j.likes; updateGridLike(file); syncLbLike();}
+  }catch(e){}
+}
 
 // ===== lightbox =====
 let cur=0;
@@ -239,8 +275,10 @@ function showLb(){
     ? `<video src="${src}" controls autoplay playsinline></video>`
     : `<img src="${src}" alt="">`;
   lcap.textContent=(it.author?it.author+' · ':'')+(it.caption||'');
+  syncLbLike();
 }
 $('#lclose').onclick=closeLb;
+$('#lbLike').onclick=()=>{const it=items[cur];if(it)toggleLike(it.file);};
 $('#lprev').onclick=()=>{cur=(cur-1+items.length)%items.length;showLb();};
 $('#lnext').onclick=()=>{cur=(cur+1)%items.length;showLb();};
 $('#lbDel').onclick=()=>{const it=items[cur];if(it)deleteItem(it.file);};

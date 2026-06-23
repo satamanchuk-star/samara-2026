@@ -5,6 +5,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   json_out(['ok' => false, 'error' => 'POST only'], 405);
 }
 
+if (!rate_limit('up', 40, 600)) {
+  json_out(['ok' => false, 'error' => 'Слишком много загрузок подряд. Подождите минуту.'], 429);
+}
+
 // --- проверка пароля ---
 $pw = $_POST['pw'] ?? '';
 if (!hash_equals(UPLOAD_PASSWORD, (string)$pw)) {

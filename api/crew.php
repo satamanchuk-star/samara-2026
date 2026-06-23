@@ -15,6 +15,7 @@ if ($action === 'list') {
 }
 
 if ($action === 'add') {
+  if (!rate_limit('crew', 15, 600)) json_out(['ok'=>false,'error'=>'Слишком часто. Подождите.'], 429);
   $name = clean_str($_POST['name'] ?? '', 40);
   if ($name === '') json_out(['ok'=>false,'error'=>'Введи имя'],400);
   $emoji = clean_str($_POST['emoji'] ?? '', 8);

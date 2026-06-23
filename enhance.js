@@ -3,6 +3,9 @@
    которые рантайм не перерисовывает. */
 (function () {
   'use strict';
+  // a11y: артефакт не задаёт язык и заголовок страницы — добавляем
+  if (!document.documentElement.getAttribute('lang')) document.documentElement.setAttribute('lang', 'ru');
+  if (!document.title) document.title = 'SMR-26 · Volga Weekend · 3–5 июля 2026';
   var LAT = 53.195, LON = 50.101;
   var TRIP = ['2026-07-03', '2026-07-04', '2026-07-05'];
 
@@ -12,7 +15,7 @@
     '.smr-links{display:none;flex-direction:column;gap:8px;align-items:flex-end}',
     '.smr-links.open{display:flex}',
     '.smr-lnk{display:flex;align-items:center;gap:8px;background:#fff;color:#235D5A;text-decoration:none;border:1px solid #D8C7A6;border-radius:999px;padding:10px 16px;box-shadow:0 6px 18px rgba(0,0,0,.18);font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.04em;font-size:13px}',
-    '.smr-menu{display:flex;align-items:center;gap:8px;background:#C8841E;color:#fff;border:none;cursor:pointer;border-radius:999px;padding:12px 18px;box-shadow:0 6px 18px rgba(0,0,0,.22);font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.04em;font-size:14px}',
+    '.smr-menu{display:flex;align-items:center;gap:8px;background:#A86511;color:#fff;border:none;cursor:pointer;border-radius:999px;padding:12px 18px;box-shadow:0 6px 18px rgba(0,0,0,.22);font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.04em;font-size:14px}',
     '.smr-wbtn{display:flex;align-items:center;gap:8px;background:#235D5A;color:#F4ECD9;border:none;cursor:pointer;border-radius:999px;padding:10px 15px;box-shadow:0 6px 18px rgba(0,0,0,.22);font-family:Oswald,sans-serif;letter-spacing:.03em;font-size:14px}',
     '.smr-wbtn .t{font-size:18px;font-weight:700}',
     '.smr-panel{position:fixed;right:14px;bottom:74px;z-index:91;width:300px;max-width:calc(100vw - 28px);background:#fff;border:1px solid #D8C7A6;border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.28);padding:15px 16px;display:none;font-family:Onest,sans-serif;color:#332A22}',
@@ -21,17 +24,17 @@
     '.smr-now{display:flex;align-items:center;gap:12px;margin:8px 0 4px}',
     '.smr-now .big{font-size:40px;line-height:1}',
     '.smr-now .deg{font-family:Oswald,sans-serif;font-size:34px;color:#235D5A;line-height:1}',
-    '.smr-now .desc{font-size:12.5px;color:#7a6a52}',
+    '.smr-now .desc{font-size:12.5px;color:#675a44}',
     '.smr-days{display:flex;gap:6px;margin-top:10px}',
     '.smr-day{flex:1;background:#faf6ec;border:1px solid #eadfc6;border-radius:10px;padding:7px 4px;text-align:center}',
-    '.smr-day .dn{font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.04em;color:#9a8a6a;text-transform:uppercase}',
+    '.smr-day .dn{font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.04em;color:#6b5c44;text-transform:uppercase}',
     '.smr-day .di{font-size:20px;margin:2px 0}',
     '.smr-day .dt{font-size:12px;font-weight:600;color:#332A22}',
     '.smr-day .dp{font-size:10px;color:#3b7bbf}',
     '.smr-rec{margin-top:11px;border-radius:11px;padding:10px 12px;font-size:12.5px;line-height:1.45}',
     '.smr-rec b{font-family:Oswald,sans-serif;letter-spacing:.02em}',
-    '.smr-close{position:absolute;top:9px;right:11px;border:none;background:none;font-size:17px;color:#b3a386;cursor:pointer}',
-    '.smr-foot{margin-top:10px;font-size:10.5px;color:#b3a386;text-align:center}'
+    '.smr-close{position:absolute;top:9px;right:11px;border:none;background:none;font-size:17px;color:#8a7a5f;cursor:pointer}',
+    '.smr-foot{margin-top:10px;font-size:10.5px;color:#8a7a5f;text-align:center}'
   ].join('');
   document.head.appendChild(css);
 
@@ -61,8 +64,8 @@
     var txt = (btn.textContent || '').trim();
     var isPhoto = /Фото/.test(txt), isVideo = /Видео/.test(txt);
     if (!isPhoto && !isVideo) return;
-    e.preventDefault();
-    e.stopPropagation();
+    // НЕ глушим событие: пусть React отметит момент «поймано» (счётчик) и сохранит,
+    // затем уводим в галерею с подписью.
     var title = '';
     try {
       var card = btn.parentElement.parentElement;            // карточка чекпойнта
@@ -70,7 +73,7 @@
       if (titleEl) title = titleEl.textContent.trim();
     } catch (_) {}
     var q = '?type=' + (isVideo ? 'video' : 'photo') + (title ? '&caption=' + encodeURIComponent(title) : '');
-    location.href = '/gallery.html' + q;
+    setTimeout(function () { location.href = '/gallery.html' + q; }, 130);
   }, true);
 
   var panel = document.createElement('div');
@@ -80,6 +83,19 @@
 
   document.getElementById('smrW').onclick = function () { panel.classList.toggle('on'); };
   document.getElementById('smrX').onclick = function () { panel.classList.remove('on'); };
+
+  // кнопка «наверх» (слева внизу, появляется при прокрутке)
+  var topBtn = document.createElement('button');
+  topBtn.textContent = '↑';
+  topBtn.setAttribute('aria-label', 'Наверх');
+  topBtn.style.cssText = 'position:fixed;left:14px;bottom:16px;z-index:89;width:46px;height:46px;border-radius:50%;border:none;background:#235D5A;color:#F4ECD9;font-size:22px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.22);opacity:0;pointer-events:none;transition:opacity .2s';
+  document.body.appendChild(topBtn);
+  topBtn.onclick = function () { window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  window.addEventListener('scroll', function () {
+    var on = window.scrollY > 600;
+    topBtn.style.opacity = on ? '1' : '0';
+    topBtn.style.pointerEvents = on ? 'auto' : 'none';
+  }, { passive: true });
 
   var WMO = {
     0:['☀️','ясно'],1:['🌤️','малооблачно'],2:['⛅','облачно'],3:['☁️','пасмурно'],
@@ -108,7 +124,7 @@
     if(storm || maxWind>=45 || maxPrecip>=70)
       return {bg:'#fbe9e7',bd:'#f0c3bc',cl:'#b23b2e',t:'<b>Сценарий B/C.</b> Шторм/сильный дождь — открытый катер не берём. Волгу на субботу или «сухопутно-пивной» день (фон Вакано, На Дне).'};
     if(maxPrecip>=35 || maxWind>=30)
-      return {bg:'#fff6e6',bd:'#f0d9a8',cl:'#9a6a1e',t:'<b>Сценарий A.</b> Возможен дождь/ветер — берём теплоход с закрытым салоном и ветровки, едем по плану.'};
+      return {bg:'#fff6e6',bd:'#f0d9a8',cl:'#7a4f12',t:'<b>Сценарий A.</b> Возможен дождь/ветер — берём теплоход с закрытым салоном и ветровки, едем по плану.'};
     return {bg:'#e7f3ec',bd:'#bfe3cd',cl:'#1F8A5B',t:'<b>По плану ✓</b> Погода благоприятная — открытый катер/теплоход по Волге без ограничений.'};
   }
 
@@ -141,7 +157,7 @@
       var rec=recommend(tripDays);
       if(rec) html+='<div class="smr-rec" style="background:'+rec.bg+';border:1px solid '+rec.bd+';color:'+rec.cl+'">'+rec.t+'</div>';
     } else {
-      html+='<div style="font-size:12.5px;color:#9a8a6a;margin-top:6px">Точный прогноз появится ближе к дате (за ~16 дней).</div>';
+      html+='<div style="font-size:12.5px;color:#6b5c44;margin-top:6px">Точный прогноз появится ближе к дате (за ~16 дней).</div>';
     }
     html+='<div class="smr-foot">данные Open-Meteo · обновляется автоматически</div>';
     document.getElementById('smrBody').innerHTML=html;
@@ -156,7 +172,7 @@
   }).catch(function(){
     if(!localStorage.getItem('smr_weather')){
       document.getElementById('smrWt').textContent='—';
-      document.getElementById('smrBody').innerHTML='<h4>Погода в Самаре</h4><div style="font-size:13px;color:#9a8a6a;margin-top:8px">Не удалось загрузить прогноз. Открой панель позже.</div>';
+      document.getElementById('smrBody').innerHTML='<h4>Погода в Самаре</h4><div style="font-size:13px;color:#6b5c44;margin-top:8px">Не удалось загрузить прогноз. Открой панель позже.</div>';
     }
   });
 })();

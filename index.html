@@ -1433,9 +1433,9 @@
   }
 
   // src/index.ts
-  var REACT_URL = "https://unpkg.com/react@18.3.1/umd/react.production.min.js";
+  var REACT_URL = "/vendor/react.production.min.js";
   var REACT_SRI = "sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z";
-  var REACT_DOM_URL = "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js";
+  var REACT_DOM_URL = "/vendor/react-dom.production.min.js";
   var REACT_DOM_SRI = "sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1";
   function hideRawTemplate() {
     const s = document.createElement("style");
@@ -1811,10 +1811,10 @@
 
     <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.06em;font-size:13px;color:#7a6a52;margin-bottom:9px">Готовые маршруты →</div>
     <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:22px">
-      <a target="_blank" rel="noopener" href="https://yandex.ru/maps/?rtext=Аэропорт Курумоч~Самара, улица Алексея Толстого, 99&rtt=auto" style="display:flex;justify-content:space-between;align-items:center;text-decoration:none;background:#235D5A;color:#F4ECD9;border-radius:10px;padding:12px 14px;font-size:13.5px"><span>🌙 Курумоч → HolidayHall</span><span style="font-family:'Oswald',sans-serif">↗</span></a>
-      <a target="_blank" rel="noopener" href="https://yandex.ru/maps/?rtext=Самара, улица Алексея Толстого, 99~Самара, улица Максима Горького, 82~Самара, Волжский проспект, 4~Самара, Красноармейская, 4&rtt=auto" style="display:flex;justify-content:space-between;align-items:center;text-decoration:none;background:#C8841E;color:#fff;border-radius:10px;padding:12px 14px;font-size:13.5px"><span>🚢🍺 Пт: отель → вокзал → На Дне → фон Вакано</span><span style="font-family:'Oswald',sans-serif">↗</span></a>
-      <a target="_blank" rel="noopener" href="https://yandex.ru/maps/?rtext=Самара, улица Алексея Толстого, 99~Самара, набережная~Самара, Заволга кухня костра&rtt=auto" style="display:flex;justify-content:space-between;align-items:center;text-decoration:none;background:#2c6b63;color:#F4ECD9;border-radius:10px;padding:12px 14px;font-size:13.5px"><span>🧖🔥 Сб: отель → набережная → Заволга</span><span style="font-family:'Oswald',sans-serif">↗</span></a>
-      <a target="_blank" rel="noopener" href="https://yandex.ru/maps/?rtext=Самара, улица Алексея Толстого, 99~Самара, Фрунзе, 159~Аэропорт Курумоч&rtt=auto" style="display:flex;justify-content:space-between;align-items:center;text-decoration:none;background:#C45A28;color:#fff;border-radius:10px;padding:12px 14px;font-size:13.5px"><span>🏛️✈️ Вс: отель → Музей модерна → Курумоч</span><span style="font-family:'Oswald',sans-serif">↗</span></a>
+      <a target="_blank" rel="noopener" href="https://yandex.ru/maps/?rtext=53.5093555,50.1455448~53.1900853,50.0863196&rtt=auto" style="display:flex;justify-content:space-between;align-items:center;text-decoration:none;background:#235D5A;color:#F4ECD9;border-radius:10px;padding:12px 14px;font-size:13.5px"><span>🌙 Курумоч → HolidayHall</span><span style="font-family:'Oswald',sans-serif">↗</span></a>
+      <a target="_blank" rel="noopener" href="https://yandex.ru/maps/?rtext=53.1900853,50.0863196~53.1870548,50.0785812~53.2010515,50.0978854~53.1951117,50.0949191&rtt=auto" style="display:flex;justify-content:space-between;align-items:center;text-decoration:none;background:#C8841E;color:#fff;border-radius:10px;padding:12px 14px;font-size:13.5px"><span>🚢🍺 Пт: отель → вокзал → На Дне → фон Вакано</span><span style="font-family:'Oswald',sans-serif">↗</span></a>
+      <a target="_blank" rel="noopener" href="https://yandex.ru/maps/?rtext=53.1900853,50.0863196~53.1989,50.0859~53.1874552,50.0906307&rtt=auto" style="display:flex;justify-content:space-between;align-items:center;text-decoration:none;background:#2c6b63;color:#F4ECD9;border-radius:10px;padding:12px 14px;font-size:13.5px"><span>🧖🔥 Сб: отель → набережная → Заволга</span><span style="font-family:'Oswald',sans-serif">↗</span></a>
+      <a target="_blank" rel="noopener" href="https://yandex.ru/maps/?rtext=53.1900853,50.0863196~53.1942466,50.0963059~53.5093555,50.1455448&rtt=auto" style="display:flex;justify-content:space-between;align-items:center;text-decoration:none;background:#C45A28;color:#fff;border-radius:10px;padding:12px 14px;font-size:13.5px"><span>🏛️✈️ Вс: отель → Музей модерна → Курумоч</span><span style="font-family:'Oswald',sans-serif">↗</span></a>
     </div>
 
     <div style="display:flex;gap:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:14px;padding-bottom:2px">
@@ -2334,7 +2334,7 @@ class Component extends DCLogic {
   }
 }
 </script>
-<script src="/enhance.js?v=4" defer></script>
+<script src="/enhance.js?v=5" defer></script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
 </body>
 </html>

@@ -7,7 +7,7 @@
 <title>Карта маршрута · SMR-26</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icons/icon-180.png">
 <style>
@@ -19,9 +19,9 @@
   .back{flex:none;text-decoration:none;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:13px;color:#235D5A;border:1px solid #235D5A;border-radius:999px;padding:6px 13px}
   .htitle{font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;font-size:18px;color:#235D5A}
   .hero{padding:22px 0 4px}
-  .kicker{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#C8841E}
+  .kicker{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#A86511}
   h1{font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;font-size:32px;margin:6px 0 6px;line-height:1}
-  .sub{font-size:14px;color:#7a6a52;font-style:italic;margin:0 0 16px}
+  .sub{font-size:14px;color:#675a44;font-style:italic;margin:0 0 16px}
   #map{height:62vh;min-height:380px;border-radius:16px;border:1px solid #D8C7A6;overflow:hidden;box-shadow:0 6px 22px rgba(0,0,0,.08)}
   .legend{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px}
   .lg{display:flex;align-items:center;gap:6px;font-size:12px;color:#5a4b3a;background:#fff;border:1px solid #D8C7A6;border-radius:999px;padding:4px 10px}
@@ -33,9 +33,9 @@
   .lp-link{font-size:12px;color:#235D5A;text-decoration:none;border:1px solid #235D5A;border-radius:999px;padding:3px 9px;display:inline-block}
   .list{margin:18px 0 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
   .pl{background:#fff;border:1px solid #D8C7A6;border-radius:12px;padding:11px 13px;cursor:pointer}
-  .pl .t{font-weight:600;font-size:14px}.pl .s{font-size:12.5px;color:#7a6a52;margin-top:2px;line-height:1.4}
+  .pl .t{font-weight:600;font-size:14px}.pl .s{font-size:12.5px;color:#675a44;margin-top:2px;line-height:1.4}
   .pl .b{display:inline-block;font-size:10px;font-family:'Oswald',sans-serif;letter-spacing:.05em;color:#fff;padding:2px 8px;border-radius:999px;margin-top:7px}
-  footer{padding:26px 0 50px;text-align:center;color:#b3a386;font-size:12px}
+  footer{padding:26px 0 50px;text-align:center;color:#8a7a5f;font-size:12px}
   .leaflet-popup-content{margin:11px 13px}
 </style>
 </head>
@@ -45,7 +45,7 @@
   <div class="htitle">🗺️ Карта маршрута</div>
 </div></header>
 
-<div class="wrap">
+<div class="wrap" role="main">
   <div class="hero">
     <div class="kicker">SMR-26 · Самара</div>
     <h1>Точки на карте</h1>
@@ -57,12 +57,12 @@
 </div>
 <footer>SMR-26 · карта маршрута · карты © OpenStreetMap</footer>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/vendor/leaflet/leaflet.js"></script>
 <script>
 const CATS = {
   base:   {c:'#235D5A', n:'База'},
   volga:  {c:'#2f6fb0', n:'Волга / космос'},
-  beer:   {c:'#C8841E', n:'Пиво / ужин'},
+  beer:   {c:'#A86511', n:'Пиво / ужин'},
   bar:    {c:'#8a4fa0', n:'Бары'},
   history:{c:'#8a6a3a', n:'История'},
   fly:    {c:'#6a6a6a', n:'Вылет'},

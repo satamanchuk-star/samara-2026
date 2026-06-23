@@ -90,9 +90,8 @@
     return {bg:'#e7f3ec',bd:'#bfe3cd',cl:'#1F8A5B',t:'<b>По плану ✓</b> Погода благоприятная — открытый катер/теплоход по Волге без ограничений.'};
   }
 
-  var url='https://api.open-meteo.com/v1/forecast?latitude='+LAT+'&longitude='+LON+
-    '&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max'+
-    '&timezone=Europe%2FSamara&forecast_days=16';
+  // грузим погоду через свой сервер (api.open-meteo.com напрямую из РФ часто недоступен)
+  var url='/api/weather.php';
 
   fetch(url).then(function(r){return r.json();}).then(function(j){
     var t=Math.round(j.current.temperature_2m);

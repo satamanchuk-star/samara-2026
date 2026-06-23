@@ -51,6 +51,28 @@
     document.getElementById('smrLinks').classList.toggle('open');
   };
 
+  // Перехват кнопок «Фото/Видео» в чекпойнтах → открыть загрузку в галерею с подписью.
+  // Capture-фаза на document срабатывает раньше React-обработчика (React 18 слушает на #dc-root).
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('button') : null;
+    if (!btn) return;
+    var sec = btn.closest('#checkpoints');
+    if (!sec) return;
+    var txt = (btn.textContent || '').trim();
+    var isPhoto = /Фото/.test(txt), isVideo = /Видео/.test(txt);
+    if (!isPhoto && !isVideo) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var title = '';
+    try {
+      var card = btn.parentElement.parentElement;            // карточка чекпойнта
+      var titleEl = card.firstElementChild && card.firstElementChild.firstElementChild;
+      if (titleEl) title = titleEl.textContent.trim();
+    } catch (_) {}
+    var q = '?type=' + (isVideo ? 'video' : 'photo') + (title ? '&caption=' + encodeURIComponent(title) : '');
+    location.href = '/gallery.html' + q;
+  }, true);
+
   var panel = document.createElement('div');
   panel.className = 'smr-panel';
   panel.innerHTML = '<button class="smr-close" id="smrX">✕</button><div id="smrBody">Загружаю погоду…</div>';

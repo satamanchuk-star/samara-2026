@@ -125,6 +125,21 @@ let chosen=[];
 $('#author').value = localStorage.getItem('smr_author')||'';
 $('#pw').value     = localStorage.getItem('smr_pw')||'';
 
+// предзаполнение из ссылки (приход из чекпойнтов: ?type=photo|video&caption=…)
+(function(){
+  const qs=new URLSearchParams(location.search);
+  const cap=qs.get('caption'), type=qs.get('type');
+  if(cap){ $('#caption').value=cap; }
+  if(type==='video'){ fileInput.setAttribute('accept','video/*'); $('#drop').querySelector('.t1').textContent='Выбрать видео'; }
+  else if(type==='photo'){ fileInput.setAttribute('accept','image/*'); $('#drop').querySelector('.t1').textContent='Выбрать фото'; }
+  if(cap||type){
+    const d=$('#drop');
+    d.style.borderColor='#9a6a1e'; d.style.background='#fbecd0';
+    if(cap){ const t2=d.querySelector('.t2'); t2.innerHTML='момент: <b>'+cap.replace(/[&<>]/g,'')+'</b> · нажми, чтобы выбрать'; }
+    setTimeout(()=>d.scrollIntoView({behavior:'smooth',block:'center'}),150);
+  }
+})();
+
 drop.onclick=()=>fileInput.click();
 ['dragover','dragenter'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('over')}));
 ['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('over')}));

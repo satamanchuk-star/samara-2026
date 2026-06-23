@@ -1562,7 +1562,6 @@
       <a href="#smr-timings" style="flex:none;text-decoration:none;color:#5a4b3a;padding:5px 11px;border:1px solid #D8C7A6;border-radius:999px">📅 Тайминги</a>
       <a href="/gallery.html" style="flex:none;text-decoration:none;color:#235D5A;padding:5px 11px;border:1px solid #235D5A;border-radius:999px">📸 Галерея</a>
       <a href="/map.html" style="flex:none;text-decoration:none;color:#235D5A;padding:5px 11px;border:1px solid #235D5A;border-radius:999px">🗺️ Карта</a>
-      <a href="/crew.html" style="flex:none;text-decoration:none;color:#235D5A;padding:5px 11px;border:1px solid #235D5A;border-radius:999px">👥 Экипаж</a>
       <a href="#smr-merch" style="flex:none;text-decoration:none;color:#5a4b3a;padding:5px 11px;border:1px solid #D8C7A6;border-radius:999px">👕 Мерч</a>
     </div>
   </nav>
@@ -1701,12 +1700,48 @@
           <div style="font-size:13px;color:#332A22;margin-top:6px">Старт пятничной Волги.</div>
         </div>
       </div>
-      <div style="background:#235D5A;color:#F4ECD9;border-radius:12px;padding:14px 15px;display:flex;align-items:center;justify-content:space-between">
-        <div>
-          <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.08em;font-size:13px;color:#E6B25A;margin-bottom:4px">Экипаж</div>
-          <div style="font-family:'Oswald',sans-serif;font-size:22px;letter-spacing:.03em">Саша &amp; Витя</div>
-        </div>
-        <div style="font-size:34px">🍺🚢</div>
+      <div style="background:#235D5A;color:#F4ECD9;border-radius:12px;padding:13px 15px 8px;overflow:hidden">
+        <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.08em;font-size:13px;color:#E6B25A;margin-bottom:2px">Экипаж · Саша &amp; Витя</div>
+        <svg viewBox="0 0 420 90" style="width:100%;height:auto;max-height:100px;display:block" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Кораблик везёт пиво Саше и Вите">
+          <!-- вода -->
+          <path d="M150 62 Q188 57 226 62 T302 62 T378 62 T454 62 V90 H150 Z" fill="#3f86c4" opacity="0.45"/>
+          <path d="M150 66 Q188 62 226 66 T302 66 T378 66 T454 66" fill="none" stroke="#bfe0f5" stroke-width="1" opacity="0.4"/>
+          <!-- Саша: русый, очки -->
+          <g transform="translate(46,4)">
+            <ellipse cx="0" cy="48" rx="17" ry="17" fill="#3f7f79"/>
+            <circle cx="0" cy="22" r="13.5" fill="#f0c8a4"/>
+            <path d="M-13 17 Q-11 5 0 5 Q11 5 13 17 Q9 9 0 9 Q-9 9 -13 17" fill="#a07f4d"/>
+            <circle cx="-5.5" cy="22" r="4.3" fill="#ffffff" fill-opacity="0.22" stroke="#2a2018" stroke-width="1.4"/>
+            <circle cx="5.5" cy="22" r="4.3" fill="#ffffff" fill-opacity="0.22" stroke="#2a2018" stroke-width="1.4"/>
+            <line x1="-1.2" y1="22" x2="1.2" y2="22" stroke="#2a2018" stroke-width="1.4"/>
+            <circle cx="-5.5" cy="22" r="1.4" fill="#2a2018"/>
+            <circle cx="5.5" cy="22" r="1.4" fill="#2a2018"/>
+            <line class="crew-mouth" x1="-3.5" y1="29" x2="3.5" y2="29" stroke="#8a4a3a" stroke-width="1.5" stroke-linecap="round"/>
+            <path class="crew-smile" d="M-4.5 27.5 Q0 33 4.5 27.5" fill="none" stroke="#8a4a3a" stroke-width="1.8" stroke-linecap="round" opacity="0"/>
+            <text x="0" y="82" text-anchor="middle" fill="#F4ECD9" font-family="Oswald,sans-serif" font-size="12">Саша</text>
+          </g>
+          <!-- Витя: лысый, без очков -->
+          <g transform="translate(120,4)">
+            <ellipse cx="0" cy="48" rx="17" ry="17" fill="#a86511"/>
+            <circle cx="0" cy="22" r="13.5" fill="#f0c8a4"/>
+            <circle cx="-5" cy="21" r="1.6" fill="#2a2018"/>
+            <circle cx="5" cy="21" r="1.6" fill="#2a2018"/>
+            <line class="crew-mouth" x1="-3.5" y1="29" x2="3.5" y2="29" stroke="#8a4a3a" stroke-width="1.5" stroke-linecap="round"/>
+            <path class="crew-smile" d="M-4.5 27.5 Q0 33 4.5 27.5" fill="none" stroke="#8a4a3a" stroke-width="1.8" stroke-linecap="round" opacity="0"/>
+            <text x="0" y="82" text-anchor="middle" fill="#F4ECD9" font-family="Oswald,sans-serif" font-size="12">Витя</text>
+          </g>
+          <!-- кораблик с пивом -->
+          <g class="crew-ship">
+            <g transform="translate(0,-26)">
+              <rect x="-5" y="-7" width="10" height="13" rx="2" fill="#e8a93a" stroke="#9a6a1e" stroke-width="1"/>
+              <rect x="-5" y="-7" width="10" height="4" rx="1.5" fill="#fff6e0"/>
+              <path d="M5 -3 q5 1 0 8" fill="none" stroke="#9a6a1e" stroke-width="1.4"/>
+            </g>
+            <rect x="-2" y="-16" width="4" height="8" fill="#cf5a3a"/>
+            <rect x="-11" y="-8" width="22" height="8" rx="1.5" fill="#f4ecd9"/>
+            <path d="M-20 0 L20 0 L13 10 L-13 10 Z" fill="#b5482e"/>
+          </g>
+        </svg>
       </div>
     </div>
 
@@ -1719,6 +1754,12 @@
         <div style="flex:none;width:188px;background:#fff;border:1px solid #e7d6b3;border-radius:10px;padding:11px 12px;font-size:12.5px;line-height:1.45;color:#5a4b3a">🏞️ <b>Самая длинная набережная</b> в России — больше 4 км. Пешком до Заволги может и не дойти.</div>
         <div style="flex:none;width:188px;background:#fff;border:1px solid #e7d6b3;border-radius:10px;padding:11px 12px;font-size:12.5px;line-height:1.45;color:#5a4b3a">⚔️ <b>Чапаев тут свой.</b> Памятник Чапаеву — один из крупнейших в стране. Селфи — по уставу.</div>
         <div style="flex:none;width:188px;background:#fff;border:1px solid #e7d6b3;border-radius:10px;padding:11px 12px;font-size:12.5px;line-height:1.45;color:#5a4b3a">🐟 <b>Вобла к пиву</b> — не закуска, а образ жизни. Местные одобряют.</div>
+        <div style="flex:none;width:188px;background:#fff;border:1px solid #e7d6b3;border-radius:10px;padding:11px 12px;font-size:12.5px;line-height:1.45;color:#5a4b3a">🛰️ <b>Тут делают ракеты.</b> РКЦ «Прогресс» строит «Союзы» до сих пор. Космос здесь — не музей, а соседний завод.</div>
+        <div style="flex:none;width:188px;background:#fff;border:1px solid #e7d6b3;border-radius:10px;padding:11px 12px;font-size:12.5px;line-height:1.45;color:#5a4b3a">🏛️ <b>Запасная столица.</b> В 1941-м сюда эвакуировали правительство и посольства. Для Сталина вырыли бункер на глубине 37 м.</div>
+        <div style="flex:none;width:188px;background:#fff;border:1px solid #e7d6b3;border-radius:10px;padding:11px 12px;font-size:12.5px;line-height:1.45;color:#5a4b3a">🎸 <b>Грушинский фестиваль.</b> Крупнейший бард-фест страны — на Волге под Самарой, со сценой в виде гитары на воде.</div>
+        <div style="flex:none;width:188px;background:#fff;border:1px solid #e7d6b3;border-radius:10px;padding:11px 12px;font-size:12.5px;line-height:1.45;color:#5a4b3a">🏞️ <b>Самарская Лука.</b> Волга делает огромную петлю вокруг Жигулёвских гор — заповедник и лучшие открытки.</div>
+        <div style="flex:none;width:188px;background:#fff;border:1px solid #e7d6b3;border-radius:10px;padding:11px 12px;font-size:12.5px;line-height:1.45;color:#5a4b3a">🔒 <b>Был закрытым городом.</b> До 1991-го Куйбышев был закрыт для иностранцев — всё из-за оборонки и космоса.</div>
+        <div style="flex:none;width:188px;background:#fff;border:1px solid #e7d6b3;border-radius:10px;padding:11px 12px;font-size:12.5px;line-height:1.45;color:#5a4b3a">🌉 <b>Дом со слонами.</b> Дача Головкина — особняк с белыми слонами на берегу. Самая странная и милая достопримечательность.</div>
       </div>
     </div>
   </section>
@@ -2343,7 +2384,7 @@ class Component extends DCLogic {
   }
 }
 </script>
-<script src="/enhance.js?v=14" defer></script>
+<script src="/enhance.js?v=15" defer></script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
 </body>
 </html>

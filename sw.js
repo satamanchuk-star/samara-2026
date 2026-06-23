@@ -1,8 +1,8 @@
 /* SMR-26 service worker — network-first, чтобы контент был свежим, с офлайн-фолбэком из кэша. */
-var CACHE = 'smr26-v12';
+var CACHE = 'smr26-v13';
 var SHELL = ['/', '/index.html', '/gallery.html', '/map.html', '/crew.html', '/enhance.js?v=12',
   '/vendor/react.production.min.js', '/vendor/react-dom.production.min.js',
-  '/vendor/leaflet/leaflet.js', '/vendor/leaflet/leaflet.css', '/manifest.webmanifest',
+  '/vendor/leaflet/leaflet.js', '/vendor/leaflet/leaflet.css', '/favicon.svg','/favicon.ico','/manifest.webmanifest',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-180.png'];
 
 self.addEventListener('install', function (e) {

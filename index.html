@@ -1532,11 +1532,11 @@
 <helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  body{margin:0;background:#E7DAC0;color:#332A22;font-family:'Onest',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  body{margin:0;background:#E7DAC0;color:#332A22;font-family:'Montserrat',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased}
   ::selection{background:#E6B25A;color:#332A22}
   input::placeholder{color:#b3a484}
   @keyframes floatup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -1854,7 +1854,7 @@
     </div>
 
     <div style="display:flex;gap:8px;margin-bottom:16px">
-      <input value="{{ newCp }}" onInput="{{ onNewCpInput }}" onKeyDown="{{ onNewCpKey }}" placeholder="Свой момент: «вобла на набережной»…" style="flex:1;min-width:0;background:#fff;border:1px solid #D8C7A6;border-radius:10px;padding:11px 13px;font-size:14px;font-family:'Onest',sans-serif;color:#332A22;outline:none" />
+      <input value="{{ newCp }}" onInput="{{ onNewCpInput }}" onKeyDown="{{ onNewCpKey }}" placeholder="Свой момент: «вобла на набережной»…" style="flex:1;min-width:0;background:#fff;border:1px solid #D8C7A6;border-radius:10px;padding:11px 13px;font-size:14px;font-family:'Montserrat',sans-serif;color:#332A22;outline:none" />
       <button onClick="{{ addCheckpoint }}" style="flex:none;background:#C8841E;color:#fff;border:none;border-radius:10px;padding:0 18px;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:14px;cursor:pointer">Добавить</button>
     </div>
 
@@ -1889,7 +1889,7 @@
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
         <div>
           <div style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.06em;font-size:12px;color:#9a8a6a">Звание экипажа</div>
-          <div style="font-family:'Onest',sans-serif;font-weight:700;font-size:18px;color:#9a6a1e;line-height:1.2;margin-top:3px">{{ barRankText }}</div>
+          <div style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:18px;color:#9a6a1e;line-height:1.2;margin-top:3px">{{ barRankText }}</div>
         </div>
         <div style="text-align:right;flex:none">
           <div style="font-family:'Oswald',sans-serif;font-size:46px;color:#C8841E;line-height:.9">{{ barTotal }}</div>
@@ -1903,8 +1903,8 @@
       </div>
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;border-top:1px dashed #e7d6b3;padding-top:11px">
-        <button onClick="{{ undoDrink }}" style="font-family:'Onest',sans-serif;font-size:12.5px;color:#b3936a;background:none;border:none;cursor:pointer;padding:6px 4px">↩︎ отменить последнее</button>
-        <button onClick="{{ resetBar }}" style="font-family:'Onest',sans-serif;font-size:12px;color:#C45A28;background:none;border:1px solid #e0c3b3;border-radius:999px;padding:5px 12px;cursor:pointer">Сброс</button>
+        <button onClick="{{ undoDrink }}" style="font-family:'Montserrat',sans-serif;font-size:12.5px;color:#b3936a;background:none;border:none;cursor:pointer;padding:6px 4px">↩︎ отменить последнее</button>
+        <button onClick="{{ resetBar }}" style="font-family:'Montserrat',sans-serif;font-size:12px;color:#C45A28;background:none;border:1px solid #e0c3b3;border-radius:999px;padding:5px 12px;cursor:pointer">Сброс</button>
       </div>
     </div>
 
@@ -1921,8 +1921,8 @@
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px">
         <span style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.06em;font-size:14px;color:#332A22">{{ progressText }}</span>
         <div style="display:flex;gap:6px">
-          <button onClick="{{ toggleHideDone }}" style="font-family:'Onest',sans-serif;font-size:12px;color:#235D5A;background:none;border:1px solid #bcd1cd;border-radius:999px;padding:4px 11px;cursor:pointer">{{ hideDoneLabel }}</button>
-          <button onClick="{{ resetChecklist }}" style="font-family:'Onest',sans-serif;font-size:12px;color:#C45A28;background:none;border:1px solid #e0c3b3;border-radius:999px;padding:4px 11px;cursor:pointer">Сбросить</button>
+          <button onClick="{{ toggleHideDone }}" style="font-family:'Montserrat',sans-serif;font-size:12px;color:#235D5A;background:none;border:1px solid #bcd1cd;border-radius:999px;padding:4px 11px;cursor:pointer">{{ hideDoneLabel }}</button>
+          <button onClick="{{ resetChecklist }}" style="font-family:'Montserrat',sans-serif;font-size:12px;color:#C45A28;background:none;border:1px solid #e0c3b3;border-radius:999px;padding:4px 11px;cursor:pointer">Сбросить</button>
         </div>
       </div>
       <div style="height:9px;background:#e3d6bb;border-radius:999px;overflow:hidden">
@@ -2248,7 +2248,7 @@ class Component extends DCLogic {
     }));
 
     // Checkpoints
-    const cbase = { border: '1px solid', borderRadius: '999px', padding: '6px 13px', fontSize: '12.5px', cursor: 'pointer', fontFamily: "'Onest',sans-serif", fontWeight: '600' };
+    const cbase = { border: '1px solid', borderRadius: '999px', padding: '6px 13px', fontSize: '12.5px', cursor: 'pointer', fontFamily: "'Montserrat',sans-serif", fontWeight: '600' };
     const chip = (on) => on ? { background: '#C8841E', color: '#fff', borderColor: '#C8841E' } : { background: '#fff', color: '#7a6a52', borderColor: '#D8C7A6' };
     const cpArr = this.state.checkpoints || [];
     const cps = cpArr.map(cp => {
@@ -2339,7 +2339,7 @@ class Component extends DCLogic {
   }
 }
 </script>
-<script src="/enhance.js?v=11" defer></script>
+<script src="/enhance.js?v=12" defer></script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
 </body>
 </html>

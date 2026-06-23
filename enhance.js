@@ -24,14 +24,14 @@
     '@keyframes smrFly{0%{left:12%}100%{left:88%}}',
     '.smr-plane{animation:smrFly 5s ease-in-out infinite alternate;will-change:left}',
     '@media(prefers-reduced-motion:reduce){.smr-plane{animation:none}}',
-    '.smr-fab{position:fixed;right:14px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:90;display:flex;flex-direction:column;gap:10px;align-items:flex-end;font-family:Onest,sans-serif}',
+    '.smr-fab{position:fixed;right:14px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:90;display:flex;flex-direction:column;gap:10px;align-items:flex-end;font-family:Montserrat,sans-serif}',
     '.smr-links{display:none;flex-direction:column;gap:8px;align-items:flex-end}',
     '.smr-links.open{display:flex}',
     '.smr-lnk{display:flex;align-items:center;gap:8px;background:#fff;color:#235D5A;text-decoration:none;border:1px solid #D8C7A6;border-radius:999px;padding:10px 16px;box-shadow:0 6px 18px rgba(0,0,0,.18);font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.04em;font-size:13px}',
     '.smr-menu{display:flex;align-items:center;gap:8px;background:#A86511;color:#fff;border:none;cursor:pointer;border-radius:999px;padding:12px 18px;box-shadow:0 6px 18px rgba(0,0,0,.22);font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.04em;font-size:14px}',
     '.smr-wbtn{display:flex;align-items:center;gap:8px;background:#235D5A;color:#F4ECD9;border:none;cursor:pointer;border-radius:999px;padding:10px 15px;box-shadow:0 6px 18px rgba(0,0,0,.22);font-family:Oswald,sans-serif;letter-spacing:.03em;font-size:14px}',
     '.smr-wbtn .t{font-size:18px;font-weight:700}',
-    '.smr-panel{position:fixed;right:14px;bottom:calc(74px + env(safe-area-inset-bottom));z-index:91;width:300px;max-width:calc(100vw - 28px);background:#fff;border:1px solid #D8C7A6;border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.28);padding:15px 16px;display:none;font-family:Onest,sans-serif;color:#332A22}',
+    '.smr-panel{position:fixed;right:14px;bottom:calc(74px + env(safe-area-inset-bottom));z-index:91;width:300px;max-width:calc(100vw - 28px);background:#fff;border:1px solid #D8C7A6;border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.28);padding:15px 16px;display:none;font-family:Montserrat,sans-serif;color:#332A22}',
     '.smr-panel.on{display:block}',
     '.smr-panel h4{margin:0 0 2px;font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:13px;color:#235D5A}',
     '.smr-now{display:flex;align-items:center;gap:12px;margin:8px 0 4px}',
@@ -125,7 +125,7 @@
   }
   var timings = document.createElement('section');
   timings.id = 'smr-timings';
-  timings.style.cssText = 'max-width:760px;margin:0 auto;padding:30px 20px 8px;font-family:Onest,sans-serif';
+  timings.style.cssText = 'max-width:760px;margin:0 auto;padding:30px 20px 8px;font-family:Montserrat,sans-serif';
   timings.innerHTML =
     '<div style="font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#235D5A">08 · В дорогу</div>' +
     '<h2 style="font-family:Oswald,sans-serif;font-weight:700;text-transform:uppercase;font-size:30px;margin:6px 0 5px;line-height:1;color:#332A22">Тайминги рейса ✈️</h2>' +
@@ -143,7 +143,7 @@
   // ===== Мерч и сувениры (секция внизу страницы) =====
   var merch = document.createElement('section');
   merch.id = 'smr-merch';
-  merch.style.cssText = 'max-width:760px;margin:0 auto;padding:30px 20px 44px;font-family:Onest,sans-serif';
+  merch.style.cssText = 'max-width:760px;margin:0 auto;padding:30px 20px 44px;font-family:Montserrat,sans-serif';
   merch.innerHTML =
     '<div style="font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#235D5A">09 · Память о поездке</div>' +
     '<h2 style="font-family:Oswald,sans-serif;font-weight:700;text-transform:uppercase;font-size:30px;margin:6px 0 5px;line-height:1;color:#332A22">Мерч и сувениры 👕</h2>' +

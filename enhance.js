@@ -73,7 +73,7 @@
       if (titleEl) title = titleEl.textContent.trim();
     } catch (_) {}
     var q = '?type=' + (isVideo ? 'video' : 'photo') + (title ? '&caption=' + encodeURIComponent(title) : '');
-    setTimeout(function () { location.href = '/gallery.html' + q; }, 130);
+    setTimeout(function () { location.href = '/gallery.html' + q; }, 60);
   }, true);
 
   var panel = document.createElement('div');

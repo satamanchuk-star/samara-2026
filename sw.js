@@ -1,6 +1,6 @@
 /* SMR-26 service worker — network-first, чтобы контент был свежим, с офлайн-фолбэком из кэша. */
-var CACHE = 'smr26-v9';
-var SHELL = ['/', '/index.html', '/gallery.html', '/map.html', '/crew.html', '/enhance.js?v=9',
+var CACHE = 'smr26-v10';
+var SHELL = ['/', '/index.html', '/gallery.html', '/map.html', '/crew.html', '/enhance.js?v=10',
   '/vendor/react.production.min.js', '/vendor/react-dom.production.min.js',
   '/vendor/leaflet/leaflet.js', '/vendor/leaflet/leaflet.css', '/manifest.webmanifest',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-180.png'];
@@ -21,17 +21,22 @@ self.addEventListener('fetch', function (e) {
   var req = e.request;
   if (req.method !== 'GET') return;
   var url = new URL(req.url);
-  // не кэшируем загрузки/список галереи и сторонние API
+  // загрузки/список галереи и сторонние домены — всегда из сети
   if (url.pathname.indexOf('/api/') === 0 || url.pathname.indexOf('/uploads/') === 0) return;
   if (url.origin !== location.origin) return;
 
+  var isNav = req.mode === 'navigate' || req.destination === 'document';
+  // stale-while-revalidate: мгновенно из кэша, обновление в фоне.
+  // Для навигаций игнорируем query (gallery.html?type=… берётся из кэша '/gallery.html').
   e.respondWith(
-    fetch(req).then(function (res) {
-      var copy = res.clone();
-      caches.open(CACHE).then(function (c) { c.put(req, copy); });
-      return res;
-    }).catch(function () {
-      return caches.match(req).then(function (m) { return m || caches.match('/'); });
+    caches.open(CACHE).then(function (cache) {
+      return cache.match(req, { ignoreSearch: isNav }).then(function (cached) {
+        var fetching = fetch(req).then(function (res) {
+          if (res && res.status === 200) cache.put(req, res.clone());
+          return res;
+        }).catch(function () { return cached || cache.match('/'); });
+        return cached || fetching;
+      });
     })
   );
 });

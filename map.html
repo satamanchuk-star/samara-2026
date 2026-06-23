@@ -25,6 +25,9 @@
   #map{height:62vh;min-height:380px;border-radius:16px;border:1px solid #D8C7A6;overflow:hidden;box-shadow:0 6px 22px rgba(0,0,0,.08)}
   .legend{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px}
   .lg{display:flex;align-items:center;gap:6px;font-size:12px;color:#5a4b3a;background:#fff;border:1px solid #D8C7A6;border-radius:999px;padding:4px 10px}
+  .filters{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 6px}
+  .fchip{font-size:12.5px;font-family:'Oswald',sans-serif;letter-spacing:.03em;background:#fff;border:1px solid #D8C7A6;border-radius:999px;padding:6px 12px;cursor:pointer;color:#5a4b3a}
+  .fchip.on{background:#235D5A;color:#F4ECD9;border-color:#235D5A}
   .dot{width:11px;height:11px;border-radius:50%}
   .pin{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50% 50% 50% 2px;transform:rotate(45deg);box-shadow:0 2px 5px rgba(0,0,0,.3);border:2px solid #fff}
   .pin span{transform:rotate(-45deg);font-size:15px}
@@ -49,10 +52,10 @@
   <div class="hero">
     <div class="kicker">SMR-26 · Самара</div>
     <h1>Точки на карте</h1>
-    <p class="sub">Отель, причал, бары, история и космос — всё в одном месте. Тапни метку или карточку.</p>
+    <p class="sub">🍸 Бары, 🎶 клубы и ☕ кофейни в радиусе 3 км от отеля + точки маршрута. Фильтруй по типу — тапни чип.</p>
   </div>
   <div id="map"></div>
-  <div class="legend" id="legend"></div>
+  <div class="filters" id="filters"></div>
   <div class="list" id="list"></div>
 </div>
 <footer>SMR-26 · карта маршрута · карты © OpenStreetMap</footer>
@@ -60,12 +63,14 @@
 <script src="/vendor/leaflet/leaflet.js"></script>
 <script>
 const CATS = {
-  base:   {c:'#235D5A', n:'База'},
-  volga:  {c:'#2f6fb0', n:'Волга / космос'},
-  beer:   {c:'#A86511', n:'Пиво / ужин'},
-  bar:    {c:'#8a4fa0', n:'Бары'},
-  history:{c:'#8a6a3a', n:'История'},
-  fly:    {c:'#6a6a6a', n:'Вылет'},
+  base:   {c:'#235D5A', n:'📍 База'},
+  volga:  {c:'#2f6fb0', n:'🚢 Волга'},
+  beer:   {c:'#A86511', n:'🍺 Ужин'},
+  bar:    {c:'#8a4fa0', n:'🍸 Бары'},
+  club:   {c:'#c0398f', n:'🎶 Клубы'},
+  coffee: {c:'#6f4e37', n:'☕ Кофейни'},
+  history:{c:'#7a6a3a', n:'🏛️ История'},
+  fly:    {c:'#5a5a5a', n:'✈️ Вылет'},
 };
 const PLACES = [
   {emoji:'🏨',title:'HolidayHall Samara',sub:'А. Толстого, 99 · отель, SPA, гид',cat:'base',label:'БАЗА',q:'Самара, улица Алексея Толстого, 99',ll:[53.1900853,50.0863196]},
@@ -80,43 +85,104 @@ const PLACES = [
   {emoji:'🏛️',title:'Площадь Куйбышева',sub:'Театр оперы, «запасная столица»',cat:'history',label:'ИСТОРИЯ',q:'Самара, площадь Куйбышева',ll:[53.1955255,50.1013794]},
   {emoji:'🎖️',title:'Бункер Сталина (опция)',sub:'Фрунзе, 167 · график пн–пт',cat:'history',label:'ИСТОРИЯ',q:'Самара, Фрунзе, 167 Бункер Сталина',ll:[53.1964218,50.0988898]},
   {emoji:'✈️',title:'Аэропорт Курумоч',sub:'KUF · быть не позже 18:00 в вс',cat:'fly',label:'ВЫЛЕТ',q:'Аэропорт Курумоч',ll:[53.5093555,50.1455448]},
+  // ── бары / клубы / кофейни в радиусе 3 км от отеля (OSM) ──
+  {emoji:'🍸',title:'Milk Lab',sub:'119 м от отеля',cat:'bar',label:'БАР',q:'Самара Milk Lab',ll:[53.1902195,50.0845497]},
+  {emoji:'🍸',title:'Napi:Bar',sub:'319 м от отеля',cat:'bar',label:'БАР',q:'Самара Napi:Bar',ll:[53.1875958,50.0887207]},
+  {emoji:'🍸',title:'Vайс',sub:'342 м от отеля',cat:'bar',label:'БАР',q:'Самара Vайс',ll:[53.1879346,50.0899997]},
+  {emoji:'🍸',title:'Пикник',sub:'355 м от отеля',cat:'bar',label:'БАР',q:'Самара Пикник',ll:[53.1876981,50.0898612]},
+  {emoji:'🍺',title:'Boozer',sub:'436 м от отеля',cat:'bar',label:'БАР',q:'Самара Boozer',ll:[53.1873971,50.0910949]},
+  {emoji:'🍸',title:'Проливошная',sub:'452 м от отеля',cat:'bar',label:'БАР',q:'Самара Проливошная',ll:[53.1862033,50.0883853]},
+  {emoji:'🍸',title:'Пить Любить',sub:'492 м от отеля',cat:'bar',label:'БАР',q:'Самара Пить Любить',ll:[53.1867987,50.0912833]},
+  {emoji:'🎶',title:'Ночь',sub:'613 м от отеля',cat:'club',label:'КЛУБ',q:'Самара Ночь',ll:[53.1941306,50.092598]},
+  {emoji:'🍸',title:'Otto',sub:'706 м от отеля',cat:'bar',label:'БАР',q:'Самара Otto',ll:[53.1889897,50.0967745]},
+  {emoji:'🍸',title:'Шеннон',sub:'719 м от отеля',cat:'bar',label:'БАР',q:'Самара Шеннон',ll:[53.1949714,50.0934268]},
+  {emoji:'🍸',title:'Тайн',sub:'738 м от отеля',cat:'bar',label:'БАР',q:'Самара Тайн',ll:[53.1882122,50.0969719]},
+  {emoji:'🍸',title:'8 bit',sub:'740 м от отеля',cat:'bar',label:'БАР',q:'Самара 8 bit',ll:[53.1883696,50.0970676]},
+  {emoji:'🍸',title:'Большая шышка',sub:'756 м от отеля',cat:'bar',label:'БАР',q:'Самара Большая шышка',ll:[53.1890231,50.0975448]},
+  {emoji:'🍺',title:'Боря',sub:'784 м от отеля',cat:'bar',label:'БАР',q:'Самара Боря',ll:[53.1890672,50.0979885]},
+  {emoji:'🍺',title:'Гастропаб 1903',sub:'788 м от отеля',cat:'bar',label:'БАР',q:'Самара Гастропаб 1903',ll:[53.1950354,50.0948162]},
+  {emoji:'🍸',title:'Юрик',sub:'803 м от отеля',cat:'bar',label:'БАР',q:'Самара Юрик',ll:[53.1952136,50.0948449]},
+  {emoji:'🎶',title:'Естествознание',sub:'888 м от отеля',cat:'club',label:'КЛУБ',q:'Самара Естествознание',ll:[53.18735,50.0988609]},
+  {emoji:'🍸',title:'Muzik Box',sub:'1016 м от отеля',cat:'bar',label:'БАР',q:'Самара Muzik Box',ll:[53.1866235,50.1004685]},
+  {emoji:'🍸',title:'Цукиёмо',sub:'1109 м от отеля',cat:'bar',label:'БАР',q:'Самара Цукиёмо',ll:[53.1920475,50.1026666]},
+  {emoji:'🍸',title:'Filimonov',sub:'1405 м от отеля',cat:'bar',label:'БАР',q:'Самара Filimonov',ll:[53.1888815,50.1073498]},
+  {emoji:'🍸',title:'Пилзнер Урквел',sub:'1476 м от отеля',cat:'bar',label:'БАР',q:'Самара Пилзнер Урквел',ll:[53.1976237,50.1046033]},
+  {emoji:'🍸',title:'The Burger Out',sub:'1501 м от отеля',cat:'bar',label:'БАР',q:'Самара The Burger Out',ll:[53.1942359,50.1078049]},
+  {emoji:'🍺',title:'Жигулевское пиво',sub:'1531 м от отеля',cat:'bar',label:'БАР',q:'Самара Жигулевское пиво',ll:[53.201373,50.0995403]},
+  {emoji:'🍸',title:'Esco',sub:'1859 м от отеля',cat:'bar',label:'БАР',q:'Самара Esco',ll:[53.1916811,50.1141465]},
+  {emoji:'🍸',title:'Gourmet',sub:'1946 м от отеля',cat:'bar',label:'БАР',q:'Самара Gourmet',ll:[53.191128,50.115528]},
+  {emoji:'🍸',title:'Аббатское',sub:'1988 м от отеля',cat:'bar',label:'БАР',q:'Самара Аббатское',ll:[53.1922949,50.1159811]},
+  {emoji:'🍸',title:'Руки Вверх!',sub:'2067 м от отеля',cat:'bar',label:'БАР',q:'Самара Руки Вверх!',ll:[53.2038095,50.1073288]},
+  {emoji:'🍸',title:'Давно Пора',sub:'2848 м от отеля',cat:'bar',label:'БАР',q:'Самара Давно Пора',ll:[53.204148,50.122143]},
+  {emoji:'🍸',title:'Отдых',sub:'2949 м от отеля',cat:'bar',label:'БАР',q:'Самара Отдых',ll:[53.209337,50.1168659]},
+  {emoji:'🍸',title:'Lounge-bar OMNI',sub:'2983 м от отеля',cat:'bar',label:'БАР',q:'Самара Lounge-bar OMNI',ll:[53.2090966,50.1180153]},
+  {emoji:'☕',title:'Coffee Bean',sub:'177 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Coffee Bean',ll:[53.1894698,50.0838667]},
+  {emoji:'☕',title:'Алиса в стране чудес',sub:'293 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Алиса в стране чудес',ll:[53.1898831,50.0907051]},
+  {emoji:'☕',title:'Вишня',sub:'293 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Вишня',ll:[53.1893541,50.0820858]},
+  {emoji:'☕',title:'Green zone',sub:'324 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Green zone',ll:[53.1880041,50.0897377]},
+  {emoji:'☕',title:'Traveler\'s Coffee',sub:'341 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Traveler\'s Coffee',ll:[53.1875996,50.089335]},
+  {emoji:'☕',title:'Skuratov Coffee',sub:'391 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Skuratov Coffee',ll:[53.1867428,50.0881583]},
+  {emoji:'☕',title:'Влюбленый кролик',sub:'418 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Влюбленый кролик',ll:[53.187466,50.0908288]},
+  {emoji:'☕',title:'Прага',sub:'486 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Прага',ll:[53.1874056,50.092094]},
+  {emoji:'☕',title:'Mosaic coffee&tea',sub:'488 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Mosaic coffee&tea',ll:[53.1871619,50.0917982]},
+  {emoji:'☕',title:'Флора',sub:'609 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Флора',ll:[53.1870791,50.0939778]},
+  {emoji:'☕',title:'8 ароматов',sub:'725 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара 8 ароматов',ll:[53.1874016,50.0962544]},
+  {emoji:'☕',title:'Skuratov',sub:'736 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Skuratov',ll:[53.1871461,50.0962389]},
+  {emoji:'☕',title:'Территория Правильных Напитков',sub:'781 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Территория Правильных Напитков',ll:[53.195102,50.094545]},
+  {emoji:'☕',title:'Тесто',sub:'799 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Тесто',ll:[53.1886738,50.0981067]},
+  {emoji:'☕',title:'Surf Coffee',sub:'802 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Surf Coffee',ll:[53.1883825,50.0980398]},
+  {emoji:'☕',title:'Twinz',sub:'816 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Twinz',ll:[53.189939,50.0985854]},
+  {emoji:'☕',title:'White cup',sub:'828 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара White cup',ll:[53.1941703,50.0967406]},
+  {emoji:'☕',title:'Street Kitchen',sub:'908 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Street Kitchen',ll:[53.1974817,50.0921667]},
+  {emoji:'☕',title:'Софи и Аннабель',sub:'1639 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Софи и Аннабель',ll:[53.1998368,50.10482]},
+  {emoji:'☕',title:'Traveller\'s coffee',sub:'1683 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Traveller\'s coffee',ll:[53.1995833,50.1060538]},
+  {emoji:'☕',title:'Stars coffee',sub:'2694 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Stars coffee',ll:[53.1864642,50.1263735]},
+  {emoji:'☕',title:'Mosaic',sub:'2862 м от отеля',cat:'coffee',label:'КОФЕ',q:'Самара Mosaic',ll:[53.208951,50.1156519]},
 ];
 
 const map = L.map('map',{scrollWheelZoom:false}).setView([53.193,50.095],14);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-  maxZoom:19, attribution:'© OpenStreetMap'
-}).addTo(map);
-
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
 const yandex = q => 'https://yandex.ru/maps/?text=' + encodeURIComponent(q);
-const markers = {};
-const downtown = [];
+
+const markers=[]; const downtown=[];
 PLACES.forEach((p,i)=>{
-  if(!p.ll) return;
-  const col = CATS[p.cat].c;
-  const icon = L.divIcon({html:`<div class="pin" style="background:${col}"><span>${p.emoji}</span></div>`,className:'',iconSize:[30,30],iconAnchor:[15,28],popupAnchor:[0,-26]});
-  const m = L.marker(p.ll,{icon}).addTo(map);
+  if(!p.ll){ markers.push(null); return; }
+  const col=CATS[p.cat].c;
+  const icon=L.divIcon({html:`<div class="pin" style="background:${col}"><span>${p.emoji}</span></div>`,className:'',iconSize:[30,30],iconAnchor:[15,28],popupAnchor:[0,-26]});
+  const m=L.marker(p.ll,{icon});
   m.bindPopup(`<div class="lp-title">${p.emoji} ${p.title}</div><div class="lp-sub">${p.sub}</div><a class="lp-link" target="_blank" rel="noopener" href="${yandex(p.q)}">Яндекс.Карты ↗</a>`);
-  markers[i]=m;
+  m.addTo(map); markers.push(m);
   if(p.cat!=='fly') downtown.push(p.ll);
 });
 map.fitBounds(downtown,{padding:[40,40]});
 
-// легенда
-const lg = document.getElementById('legend');
-Object.values(CATS).forEach(c=>{
-  const d=document.createElement('div');d.className='lg';
-  d.innerHTML=`<span class="dot" style="background:${c.c}"></span>${c.n}`;lg.appendChild(d);
-});
-
-// список
-const list = document.getElementById('list');
+const list=document.getElementById('list'); const listEls=[];
 PLACES.forEach((p,i)=>{
   const col=CATS[p.cat].c;
   const el=document.createElement('div');el.className='pl';
   el.innerHTML=`<div class="t">${p.emoji} ${p.title}</div><div class="s">${p.sub}</div><span class="b" style="background:${col}">${p.label}</span>`;
   el.onclick=()=>{ if(p.ll){map.flyTo(p.ll,16);markers[i].openPopup();window.scrollTo({top:0,behavior:'smooth'});} else {window.open(yandex(p.q),'_blank');} };
-  list.appendChild(el);
+  list.appendChild(el); listEls.push(el);
 });
+
+// фильтр по категориям
+let activeCat='all';
+const fbar=document.getElementById('filters');
+[['all','Все']].concat(Object.keys(CATS).map(k=>[k,CATS[k].n])).forEach(([k,label])=>{
+  const b=document.createElement('button');b.className='fchip'+(k==='all'?' on':'');b.textContent=label;
+  b.onclick=()=>{activeCat=k;[...fbar.children].forEach(c=>c.classList.toggle('on',c===b));applyFilter();};
+  fbar.appendChild(b);
+});
+function applyFilter(){
+  PLACES.forEach((p,i)=>{
+    const show=activeCat==='all'||p.cat===activeCat;
+    const m=markers[i];
+    if(m){ if(show){if(!map.hasLayer(m))m.addTo(map);}else{if(map.hasLayer(m))map.removeLayer(m);} }
+    if(listEls[i]) listEls[i].style.display=show?'':'none';
+  });
+}
+
+window.addEventListener('load',function(){setTimeout(function(){try{map.invalidateSize();map.fitBounds(downtown,{padding:[40,40]});}catch(e){}},250);});
 </script>
 </body>
 </html>

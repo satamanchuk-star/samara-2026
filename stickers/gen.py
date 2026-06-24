@@ -63,6 +63,13 @@ def head(d,cx,cy,R,kind,expr):
             d.arc([cx+sx*eyo-9,eyy-3,cx+sx*eyo+9,eyy+9],0,180,fill=DARK,width=4)
     elif expr=='wow':
         for sx in (-1,1): el(d,cx+sx*eyo,eyy,er,int(er*1.3),DARK)
+    elif expr=='dizzy':
+        for sx in (-1,1):
+            hx=cx+sx*eyo
+            d.line([(hx-7,eyy-7),(hx+7,eyy+7)],fill=DARK,width=4); d.line([(hx-7,eyy+7),(hx+7,eyy-7)],fill=DARK,width=4)
+    elif expr=='wink':
+        d.arc([cx-eyo-9,eyy-3,cx-eyo+9,eyy+9],190,350,fill=DARK,width=5)
+        el(d,cx+eyo,eyy,er,er,DARK); el(d,cx+eyo-er//3,eyy-er//3,max(1,er//3),max(1,er//3),WHITE)
     else:
         for sx in (-1,1):
             el(d,cx+sx*eyo,eyy,er,er,DARK)
@@ -74,9 +81,11 @@ def head(d,cx,cy,R,kind,expr):
         d.line([(cx-eyo+gr,eyy),(cx+eyo-gr,eyy)],fill=DARK,width=max(3,R//16))
     # рот
     my=cy+int(R*0.5)
-    if expr in('grin','heart','cool'):
+    if expr in('grin','heart','cool','wink'):
         d.pieslice([cx-int(R*0.42),my-int(R*0.34),cx+int(R*0.42),my+int(R*0.3)],0,180,fill=(120,52,42,255))
         d.chord([cx-int(R*0.42),my-int(R*0.05),cx+int(R*0.42),my+int(R*0.05)],0,180,fill=WHITE)  # зубы
+    elif expr=='dizzy':
+        d.line([(cx-22,my),(cx-7,my+8),(cx+7,my-4),(cx+22,my+6)],fill=MOUTH,width=5,joint='curve')
     elif expr=='wow':
         el(d,cx,my+int(R*0.05),int(R*0.16),int(R*0.2),(120,52,42,255))
     elif expr=='sleep':
@@ -242,6 +251,33 @@ def s_privet(d,img):
     head(d,170,230,72,'sasha','smile'); head(d,342,230,72,'vitya','smile')
     el(d,96,250,15,15,SKIN); el(d,416,250,15,15,SKIN)  # машут
 
+def thumbsup(d,cx,cy,s):
+    ol=blend(SKIN,DARK,0.18)
+    d.rounded_rectangle([cx-15*s,cy-6*s,cx+15*s,cy+24*s],radius=int(8*s),fill=SKIN,outline=ol,width=2)
+    d.rounded_rectangle([cx-7*s,cy-28*s,cx+9*s,cy-2*s],radius=int(7*s),fill=SKIN,outline=ol,width=2)
+def fire(d,cx,cy,s):
+    d.polygon([(cx,cy-42*s),(cx+22*s,cy-2*s),(cx+14*s,cy+24*s),(cx-14*s,cy+24*s),(cx-22*s,cy-2*s)],fill=OCHRE)
+    d.polygon([(cx,cy-18*s),(cx+12*s,cy+6*s),(cx+6*s,cy+24*s),(cx-6*s,cy+24*s),(cx-12*s,cy+6*s)],fill=(255,212,120,255))
+def qmark(d,cx,cy,s,col=OCHRE_D):
+    f=ImageFont.truetype(FONT,int(96*s)); d.text((cx,cy),'?',font=f,fill=col,anchor='mm')
+
+def s_odobr(d,img):
+    body(d,210,310,80,SHIRT_V); head(d,210,200,80,'vitya','grin'); thumbsup(d,378,250,1.7)
+def s_posle(d,img):
+    body(d,256,330,86,SHIRT_V); head(d,256,205,92,'vitya','dizzy')
+def s_gde(d,img):
+    body(d,200,320,78,SHIRT_S); head(d,200,205,80,'sasha','wow'); qmark(d,378,205,1.3)
+def s_eshe(d,img):
+    body(d,256,320,84,SHIRT_S); head(d,256,200,86,'sasha','grin'); mug(d,118,300,1.5,hand='r'); mug(d,394,300,1.5,hand='l')
+def s_ogon(d,img):
+    body(d,256,330,84,SHIRT_V); head(d,256,205,86,'vitya','cool'); fire(d,116,308,1.5); fire(d,396,308,1.5)
+def s_ekipazh(d,img):
+    body(d,178,330,72,SHIRT_S); body(d,334,330,72,SHIRT_V); head(d,178,225,72,'sasha','smile'); head(d,334,225,72,'vitya','smile'); heart(d,256,176,2.6)
+def s_puchkom(d,img):
+    body(d,210,310,80,SHIRT_S); head(d,210,200,80,'sasha','wink'); thumbsup(d,378,250,1.7)
+def s_romantika(d,img):
+    head(d,176,236,70,'sasha','smile'); head(d,338,236,70,'vitya','smile'); heart(d,256,150,2.2); boat(d,256,318,1.0)
+
 os.makedirs(OUT,exist_ok=True)
 items=[
  ('01_cheers.png',s_cheers,'ЗА ВОЛГУ!',OCHRE_D),
@@ -254,11 +290,19 @@ items=[
  ('08_poehali.png',s_poehali,'ПОЕХАЛИ!',OCHRE_D),
  ('09_zozh.png',s_zozh,'ЗОЖ ТУР',OCHRE_D),
  ('10_privet.png',s_privet,'ПРИВЕТ ИЗ САМАРЫ',TEAL),
+ ('11_odobr.png',s_odobr,'ОДОБРЯЮ',OCHRE_D),
+ ('12_posle.png',s_posle,'Я ПОСЛЕ ВОЛГИ',TEAL),
+ ('13_gde.png',s_gde,'ГДЕ ПИВО?',OCHRE_D),
+ ('14_eshe.png',s_eshe,'ЕЩЁ ПО ОДНОЙ?',OCHRE_D),
+ ('15_ogon.png',s_ogon,'ОГОНЬ!',OCHRE_D),
+ ('16_ekipazh.png',s_ekipazh,'ЛУЧШИЙ ЭКИПАЖ',TEAL),
+ ('17_puchkom.png',s_puchkom,'ВСЁ ПУЧКОМ',TEAL),
+ ('18_romantika.png',s_romantika,'РОМАНТИКА',TEAL),
 ]
 for n,fn,cap,col in items: make(n,fn,cap,col)
 
 # превью-сетка
-cols=5; rows=2; cell=200; pad=8
+cols=6; rows=3; cell=180; pad=8
 sheet=Image.new('RGBA',(cols*cell+pad*(cols+1),rows*cell+pad*(rows+1)),(200,200,200,255))
 for i,(n,_,_,_) in enumerate(items):
     im=Image.open(os.path.join(OUT,n)).resize((cell,cell))
